@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aethercore Mechanics - 3D Industrial Tycoon</title>
+    <title>Liberty City 3D - Open World Action</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Three.js & OrbitControls & GLTFLoader CDN -->
+    <!-- Three.js & OrbitControls CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
     <style>
         * {
@@ -29,7 +28,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #050914;
+            background-color: #0b0f19;
             color: #f8fafc;
         }
         #canvas-container {
@@ -40,48 +39,22 @@
             height: 100%;
             z-index: 1;
         }
-        .glass-panel {
-            background: rgba(11, 19, 38, 0.9);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+        .hud-panel {
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
         .glass-card {
-            background: rgba(26, 38, 63, 0.75);
+            background: rgba(30, 41, 59, 0.7);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: all 0.2s ease;
-        }
-        .glass-card:hover {
-            border-color: rgba(59, 130, 246, 0.5);
-            background: rgba(26, 38, 63, 0.9);
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(11, 19, 38, 0.5);
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(59, 130, 246, 0.5);
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(59, 130, 246, 0.8);
-        }
-        @keyframes slideUp {
-            from { transform: translateY(100px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .modal-animation {
-            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .notification-card {
+        .mission-toast {
             animation: fadeIn 0.3s ease forwards;
         }
     </style>
@@ -91,716 +64,280 @@
     <!-- 3D Canvas Container -->
     <div id="canvas-container"></div>
 
-    <!-- UI Overlay Layer -->
-    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 md:p-5">
+    <!-- HUD Overlay -->
+    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 md:p-6">
 
-        <!-- Top Header Bar -->
-        <header class="w-full glass-panel rounded-2xl p-3 md:px-6 md:py-3.5 flex flex-wrap items-center justify-between pointer-events-auto gap-3">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <i class="fa-solid fa-industry text-white text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-sm md:text-base text-slate-100 tracking-wide">Aethercore Mechanics</h1>
-                    <div class="flex items-center space-x-2">
-                        <span id="factory-level-badge" class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">Workshop Lv.1</span>
-                        <div class="w-24 bg-slate-700/60 rounded-full h-2 overflow-hidden border border-slate-600/40">
-                            <div id="xp-bar" class="bg-gradient-to-r from-blue-500 to-indigo-400 h-full w-0 transition-all duration-500"></div>
-                        </div>
-                    </div>
-                </div>
+        <!-- Top Header: Cash, Wanted Level, Radar Mini-Info -->
+        <header class="w-full flex items-center justify-between pointer-events-auto">
+            <!-- Wanted Stars -->
+            <div id="wanted-stars" class="hud-panel px-4 py-2 rounded-2xl flex items-center space-x-1.5 shadow-2xl border border-amber-500/40">
+                <span class="text-xs font-bold text-slate-300 mr-2 uppercase tracking-wider">Wanted</span>
+                <i class="fa-solid fa-star text-amber-500 text-sm"></i>
+                <i class="fa-solid fa-star text-slate-600 text-sm"></i>
+                <i class="fa-solid fa-star text-slate-600 text-sm"></i>
             </div>
 
-            <div class="flex items-center space-x-3 md:space-x-6">
-                <div class="flex items-center space-x-2 bg-slate-900/80 px-3.5 py-1.5 rounded-xl border border-emerald-500/30 shadow-inner">
-                    <span class="text-emerald-400 text-base"><i class="fa-solid fa-indian-rupee-sign"></i></span>
-                    <span id="stat-money" class="font-extrabold text-sm md:text-lg text-emerald-300">100,000</span>
+            <!-- Cash & Health -->
+            <div class="flex items-center space-x-4">
+                <div class="hud-panel px-5 py-2 rounded-2xl flex items-center space-x-2 shadow-2xl border border-emerald-500/30">
+                    <span class="text-emerald-400 font-bold">$</span>
+                    <span id="stat-money" class="font-extrabold text-lg text-emerald-300">25,000</span>
                 </div>
-                <div class="flex items-center space-x-1.5 bg-slate-900/80 px-3.5 py-1.5 rounded-xl border border-amber-500/30 shadow-inner">
-                    <i class="fa-solid fa-star text-amber-400 text-sm"></i>
-                    <span id="stat-rep" class="font-bold text-sm md:text-base text-amber-300">50</span>
-                    <span class="text-xs text-slate-400">/100</span>
+                <div class="hud-panel px-5 py-2 rounded-2xl flex items-center space-x-2 shadow-2xl border border-red-500/30">
+                    <i class="fa-solid fa-heart text-red-500"></i>
+                    <span id="stat-health" class="font-extrabold text-lg text-red-300">100</span>
                 </div>
-                <div class="hidden sm:flex items-center space-x-1.5 bg-slate-900/80 px-3.5 py-1.5 rounded-xl border border-blue-500/30 shadow-inner">
-                    <i class="fa-solid fa-calendar-day text-blue-400 text-sm"></i>
-                    <span id="stat-day" class="font-bold text-sm text-blue-300">Day 1</span>
-                </div>
-            </div>
-
-            <div class="flex items-center space-x-2">
-                <a href="admin.html" target="_blank" title="Admin Panel" class="w-10 h-10 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 flex items-center justify-center border border-blue-500/40 transition-all">
-                    <i class="fa-solid fa-screwdriver-wrench text-sm"></i>
-                </a>
-                <button onclick="Game.toggleSound()" id="sound-btn" class="w-10 h-10 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 flex items-center justify-center border border-slate-700 transition-all">
-                    <i class="fa-solid fa-volume-high text-sm"></i>
-                </button>
-                <button onclick="UI.openModal('settings-modal')" class="w-10 h-10 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 flex items-center justify-center border border-slate-700 transition-all">
-                    <i class="fa-solid fa-gear text-sm"></i>
-                </button>
             </div>
         </header>
 
-        <!-- Floating Notifications Area -->
-        <div id="notifications-container" class="absolute top-20 right-4 z-30 flex flex-col space-y-2 pointer-events-none max-w-sm w-full"></div>
+        <!-- Center Notification Toast -->
+        <div id="toast-container" class="absolute top-24 left-1/2 -translate-x-1/2 z-30 flex flex-col space-y-2 pointer-events-none max-w-sm w-full text-center"></div>
 
-        <!-- Bottom Navigation Bar -->
-        <nav class="w-full glass-panel rounded-2xl p-2 md:px-4 md:py-3 flex items-center justify-around pointer-events-auto shadow-2xl gap-1 md:gap-2 overflow-x-auto">
-            <button onclick="UI.switchTab('factory')" id="nav-btn-factory" class="flex flex-col items-center justify-center py-2 px-3 md:px-5 rounded-xl text-blue-400 bg-blue-500/15 border border-blue-500/30 transition-all">
-                <i class="fa-solid fa-industry text-lg mb-1"></i>
-                <span class="text-[10px] md:text-xs font-bold tracking-wider">FACTORY</span>
-            </button>
-            <button onclick="UI.switchTab('orders')" id="nav-btn-orders" class="flex flex-col items-center justify-center py-2 px-3 md:px-5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all relative">
-                <i class="fa-solid fa-file-contract text-lg mb-1"></i>
-                <span class="text-[10px] md:text-xs font-bold tracking-wider">ORDERS</span>
-                <span id="orders-badge" class="absolute top-1 right-2 w-2 h-2 rounded-full bg-red-500 hidden"></span>
-            </button>
-            <button onclick="UI.switchTab('inventory')" id="nav-btn-inventory" class="flex flex-col items-center justify-center py-2 px-3 md:px-5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
-                <i class="fa-solid fa-boxes-stacked text-lg mb-1"></i>
-                <span class="text-[10px] md:text-xs font-bold tracking-wider">INVENTORY</span>
-            </button>
-            <button onclick="UI.switchTab('machines')" id="nav-btn-machines" class="flex flex-col items-center justify-center py-2 px-3 md:px-5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
-                <i class="fa-solid fa-cogs text-lg mb-1"></i>
-                <span class="text-[10px] md:text-xs font-bold tracking-wider">MACHINES</span>
-            </button>
-            <button onclick="UI.switchTab('staff')" id="nav-btn-staff" class="flex flex-col items-center justify-center py-2 px-3 md:px-5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
-                <i class="fa-solid fa-users text-lg mb-1"></i>
-                <span class="text-[10px] md:text-xs font-bold tracking-wider">STAFF</span>
-            </button>
-            <button onclick="UI.switchTab('upgrades')" id="nav-btn-upgrades" class="flex flex-col items-center justify-center py-2 px-3 md:px-5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
-                <i class="fa-solid fa-rocket text-lg mb-1"></i>
-                <span class="text-[10px] md:text-xs font-bold tracking-wider">UPGRADES</span>
-            </button>
-        </nav>
+        <!-- Controls Guide / Action Prompt -->
+        <div class="absolute bottom-28 left-1/2 -translate-x-1/2 hud-panel px-6 py-2.5 rounded-2xl pointer-events-auto shadow-2xl border border-blue-500/40 text-center">
+            <span id="action-prompt" class="text-xs md:text-sm font-bold text-blue-200">Use <b class="text-white">WASD / Arrow Keys</b> to Move & Drive | Press <b class="text-white">F</b> to Enter/Exit Vehicle</span>
+        </div>
 
-    </div>
-
-    <!-- Main Dynamic Tab Content Overlay -->
-    <div id="tab-content-container" class="absolute inset-x-4 top-20 bottom-24 z-20 pointer-events-none hidden flex items-center justify-center">
-        <div id="tab-window" class="glass-panel w-full max-w-4xl h-full max-h-[620px] rounded-3xl p-5 md:p-8 pointer-events-auto flex flex-col shadow-2xl modal-animation border border-slate-700/60 overflow-hidden">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-700/60 mb-4">
-                <div class="flex items-center space-x-3">
-                    <div id="tab-window-icon" class="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center border border-blue-500/30">
-                        <i class="fa-solid fa-industry"></i>
-                    </div>
-                    <h2 id="tab-window-title" class="text-xl font-bold text-slate-100">Factory Management</h2>
+        <!-- Bottom Controls Bar (Virtual D-Pad & Actions for Mobile/PC) -->
+        <footer class="w-full flex items-center justify-between pointer-events-auto">
+            <div class="flex items-center space-x-2 hud-panel p-3 rounded-2xl">
+                <div class="grid grid-cols-3 gap-1 w-32 h-24">
+                    <div></div>
+                    <button onclick="Game.movePlayer('UP')" class="bg-slate-800 hover:bg-slate-700 rounded-xl text-white font-bold flex items-center justify-center active:bg-blue-600"><i class="fa-solid fa-chevron-up"></i></button>
+                    <div></div>
+                    <button onclick="Game.movePlayer('LEFT')" class="bg-slate-800 hover:bg-slate-700 rounded-xl text-white font-bold flex items-center justify-center active:bg-blue-600"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button onclick="Game.movePlayer('DOWN')" class="bg-slate-800 hover:bg-slate-700 rounded-xl text-white font-bold flex items-center justify-center active:bg-blue-600"><i class="fa-solid fa-chevron-down"></i></button>
+                    <button onclick="Game.movePlayer('RIGHT')" class="bg-slate-800 hover:bg-slate-700 rounded-xl text-white font-bold flex items-center justify-center active:bg-blue-600"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
-                <button onclick="UI.closeTab()" class="w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 flex items-center justify-center border border-slate-700 transition-all">
-                    <i class="fa-solid fa-xmark text-lg"></i>
+            </div>
+
+            <div class="flex items-center space-x-3 hud-panel p-3 rounded-2xl">
+                <button onclick="Game.toggleVehicle()" class="px-5 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-500/30 flex items-center space-x-2">
+                    <i class="fa-solid fa-car text-base"></i>
+                    <span id="veh-btn-text">ENTER CAR (F)</span>
+                </button>
+                <button onclick="Game.playerPunch()" class="px-5 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs shadow-lg shadow-red-500/30 flex items-center space-x-2">
+                    <i class="fa-solid fa-hand-fist text-base"></i>
+                    <span>ACTION</span>
                 </button>
             </div>
-            <div id="tab-window-body" class="flex-1 overflow-y-auto custom-scrollbar pr-1"></div>
-        </div>
-    </div>
+        </footer>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="glass-panel w-full max-w-md rounded-3xl p-6 modal-animation border border-slate-700/80">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-700/60 mb-6">
-                <h3 class="text-lg font-bold text-slate-100"><i class="fa-solid fa-gear text-blue-400 mr-2"></i> Settings & Management</h3>
-                <button onclick="UI.closeModal('settings-modal')" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-300 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="space-y-4">
-                <div class="flex items-center justify-between p-3.5 rounded-2xl glass-card">
-                    <div>
-                        <div class="font-semibold text-sm text-slate-200">Audio Effects</div>
-                        <div class="text-xs text-slate-400">Enable UI and machinery sound cues</div>
-                    </div>
-                    <button onclick="Game.toggleSound()" id="sound-toggle-btn" class="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-lg shadow-blue-500/30">ON</button>
-                </div>
-                <div class="flex items-center justify-between p-3.5 rounded-2xl glass-card">
-                    <div>
-                        <div class="font-semibold text-sm text-slate-200">Save Game Data</div>
-                        <div class="text-xs text-slate-400">Manually trigger progress save</div>
-                    </div>
-                    <button onclick="SaveSystem.save(); UI.showNotification('Game saved successfully!', 'success');" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/30">SAVE NOW</button>
-                </div>
-                <div class="flex items-center justify-between p-3.5 rounded-2xl glass-card border-red-500/20">
-                    <div>
-                        <div class="font-semibold text-sm text-red-400">Reset Factory</div>
-                        <div class="text-xs text-slate-400">Clear progress and start from scratch</div>
-                    </div>
-                    <button onclick="if(confirm('Are you sure you want to reset all progress?')) { SaveSystem.reset(); location.reload(); }" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-500/30">RESET</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Intro Welcome Modal -->
-    <div id="intro-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
-        <div class="glass-panel w-full max-w-lg rounded-3xl p-8 modal-animation border border-blue-500/40 text-center space-y-6">
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center mx-auto shadow-2xl shadow-blue-500/50 text-2xl text-white">
-                <i class="fa-solid fa-industry"></i>
+    <div id="intro-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="hud-panel w-full max-w-lg rounded-3xl p-8 modal-animation border border-blue-500/40 text-center space-y-6">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center mx-auto shadow-2xl shadow-blue-500/50 text-2xl text-white">
+                <i class="fa-solid fa-city"></i>
             </div>
             <div>
-                <h2 class="text-2xl font-extrabold text-slate-100 mb-2">Welcome to Aethercore Mechanics</h2>
-                <p class="text-sm text-slate-300 leading-relaxed">You are the owner of a professional industrial workshop. Manage your high-end 3D machinery, hire skilled technicians, fulfill lucrative client orders, and customize your plant via the Admin panel!</p>
+                <h2 class="text-2xl font-extrabold text-slate-100 mb-2">Liberty City 3D</h2>
+                <p class="text-sm text-slate-300 leading-relaxed">Welcome to the underworld. Explore the 3D open-world city, steal sports cars, avoid the police, and complete underground missions!</p>
             </div>
             <button onclick="Game.closeIntro()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-extrabold text-white text-sm shadow-xl shadow-blue-600/40 transition-all transform active:scale-95">
-                START MANUFACTURING <i class="fa-solid fa-arrow-right ml-2"></i>
+                ENTER CITY <i class="fa-solid fa-arrow-right ml-2"></i>
             </button>
         </div>
     </div>
 
     <!-- Application Script -->
     <script>
-        const CONFIG = { startingMoney: 100000, startingReputation: 50, dayDurationSeconds: 45 };
-
-        const MACHINES_DATA = {
-            lathe: { name: "Apex Lathe-I", price: 25000, speed: 10, energy: 5, maintenanceCost: 2000, desc: "Standard precision turning lathe for basic shafts and pins.", unlockLevel: 1 },
-            drill: { name: "DrillPress-500", price: 18000, speed: 14, energy: 3, maintenanceCost: 1500, desc: "High-speed vertical drilling machine.", unlockLevel: 1 },
-            milling: { name: "Titan-X Mill", price: 45000, speed: 8, energy: 12, maintenanceCost: 3500, desc: "Robust milling machine for brackets and gear blanks.", unlockLevel: 2 },
-            cnc_lathe: { name: "CyberLathe Pro", price: 85000, speed: 18, energy: 20, maintenanceCost: 6000, desc: "Computerized numerical control turning center.", unlockLevel: 3 },
-            vmc: { name: "Apex-700 VMC", price: 150000, speed: 25, energy: 35, maintenanceCost: 10000, desc: "High-end vertical machining center for complex industrial components.", unlockLevel: 4 },
-            hydraulic_press: { name: "Omni-Stamp 10T", price: 65000, speed: 22, energy: 15, maintenanceCost: 4500, desc: "Heavy hydraulic press for stamping and component forming.", unlockLevel: 3 }
-        };
-
-        const PRODUCTS_DATA = {
-            bracket: { name: "Metal Bracket", level: 1, rawCost: 40, sellPrice: 120, time: 4, reqMachine: "milling" },
-            shaft: { name: "Precision Shaft", level: 1, rawCost: 30, sellPrice: 95, time: 3, reqMachine: "lathe" },
-            bush: { name: "Bronze Bush", level: 1, rawCost: 25, sellPrice: 75, time: 2, reqMachine: "lathe" },
-            gear: { name: "Steel Gear", level: 2, rawCost: 80, sellPrice: 240, time: 6, reqMachine: "milling" },
-            pulley: { name: "Drive Pulley", level: 2, rawCost: 70, sellPrice: 210, time: 5, reqMachine: "lathe" },
-            bearing_housing: { name: "Bearing Housing", level: 3, rawCost: 150, sellPrice: 450, time: 8, reqMachine: "cnc_lathe" },
-            pump_component: { name: "Pump Rotor", level: 3, rawCost: 180, sellPrice: 540, time: 9, reqMachine: "vmc" },
-            transmission: { name: "Transmission Assy", level: 4, rawCost: 350, sellPrice: 1100, time: 14, reqMachine: "vmc" }
-        };
-
-        const RAW_MATERIALS = {
-            steel: { name: "Industrial Steel", price: 85, unit: "kg" },
-            aluminium: { name: "Aluminium Alloy", price: 220, unit: "kg" },
-            copper: { name: "Pure Copper", price: 760, unit: "kg" }
-        };
-
-        const CUSTOMERS_LIST = [
-            { name: "Metro Components", repReq: 40 },
-            { name: "Nova Motors", repReq: 55 },
-            { name: "Apex Engineering", repReq: 70 },
-            { name: "Vertex Industries", repReq: 85 }
-        ];
-
-        class SaveSystem {
-            static load() {
-                const saved = localStorage.getItem('aethercore_mechanics_save');
-                if (saved) { try { return JSON.parse(saved); } catch (e) { } }
-                return null;
-            }
-            static save() {
-                const data = {
-                    money: Game.money, reputation: Game.reputation, factoryLevel: Game.factoryLevel,
-                    factoryXP: Game.factoryXP, day: Game.day, dayTimer: Game.dayTimer,
-                    inventory: Game.inventory, rawMaterials: Game.rawMaterials,
-                    machines: Game.machines, workers: Game.workers, activeOrders: Game.activeOrders,
-                    soundEnabled: Game.soundEnabled
-                };
-                localStorage.setItem('aethercore_mechanics_save', JSON.stringify(data));
-            }
-            static reset() { localStorage.removeItem('aethercore_mechanics_save'); }
-        }
-
-        class SoundEngine {
-            constructor() { this.ctx = null; this.enabled = true; }
-            init() {
-                if (!this.ctx) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    this.ctx = new AudioContext();
-                }
-            }
-            playClick() {
-                if (!this.enabled) return;
-                this.init();
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(600, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.08);
-                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
-                osc.connect(gain); gain.connect(this.ctx.destination);
-                osc.start(); osc.stop(this.ctx.currentTime + 0.08);
-            }
-            playCash() {
-                if (!this.enabled) return;
-                this.init();
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(523.25, now);
-                osc.frequency.setValueAtTime(659.25, now + 0.08);
-                osc.frequency.setValueAtTime(783.99, now + 0.16);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
-                osc.connect(gain); gain.connect(this.ctx.destination);
-                osc.start(now); osc.stop(now + 0.3);
-            }
-            playSuccess() {
-                if (!this.enabled) return;
-                this.init();
-                const now = this.ctx.currentTime;
-                [440, 554.37, 659.25, 880].forEach((freq, i) => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.frequency.setValueAtTime(freq, now + i * 0.07);
-                    gain.gain.setValueAtTime(0.15, now + i * 0.07);
-                    gain.gain.linearRampToValueAtTime(0.01, now + i * 0.07 + 0.2);
-                    osc.connect(gain); gain.connect(this.ctx.destination);
-                    osc.start(now + i * 0.07); osc.stop(now + i * 0.07 + 0.2);
-                });
-            }
-        }
+        /**
+         * Liberty City 3D - Open World Action Engine (GTA 3 Style)
+         */
 
         const Game = {
-            money: CONFIG.startingMoney,
-            reputation: CONFIG.startingReputation,
-            factoryLevel: 1,
-            factoryXP: 0,
-            day: 1,
-            dayTimer: 0,
-            soundEnabled: true,
-            inventory: { bracket: 10, shaft: 15, bush: 10 },
-            rawMaterials: { steel: 500, aluminium: 300, copper: 150 },
-            machines: [
-                { id: 'm1', type: 'lathe', x: -3, z: -1, condition: 100, level: 1, producing: null, progress: 0 },
-                { id: 'm2', type: 'drill', x: 3, z: -1, condition: 100, level: 1, producing: null, progress: 0 }
-            ],
-            workers: [
-                { id: 'w1', name: 'Arun', skill: 65, speedBonus: 5, salary: 1500, assignedMachine: 'm1' },
-                { id: 'w2', name: 'Priya', skill: 70, speedBonus: 8, salary: 1800, assignedMachine: 'm2' }
-            ],
-            activeOrders: [],
-            sound: new SoundEngine(),
+            money: 25000,
+            health: 100,
+            inVehicle: false,
+            keys: {},
 
             init() {
-                const saved = SaveSystem.load();
-                if (saved) {
-                    this.money = saved.money; this.reputation = saved.reputation;
-                    this.factoryLevel = saved.factoryLevel; this.factoryXP = saved.factoryXP;
-                    this.day = saved.day; this.dayTimer = saved.dayTimer || 0;
-                    this.inventory = saved.inventory || this.inventory;
-                    this.rawMaterials = saved.rawMaterials || this.rawMaterials;
-                    this.machines = saved.machines || this.machines;
-                    this.workers = saved.workers || this.workers;
-                    this.activeOrders = saved.activeOrders || [];
-                    this.soundEnabled = saved.soundEnabled !== undefined ? saved.soundEnabled : true;
-                } else {
-                    document.getElementById('intro-modal').classList.remove('hidden');
-                    this.generateInitialOrders();
-                }
-
-                this.updateSoundButton();
-                Renderer3D.init();
-                this.setupEvents();
-                this.updateUIStats();
-                
-                let lastTime = performance.now();
-                const gameLoop = (currentTime) => {
-                    const dt = (currentTime - lastTime) / 1000;
-                    lastTime = currentTime;
-                    this.update(dt);
-                    requestAnimationFrame(gameLoop);
-                };
-                requestAnimationFrame(gameLoop);
-
-                setInterval(() => { SaveSystem.save(); }, 15000);
+                World3D.init();
+                this.setupKeyboard();
+                this.updateHUD();
             },
 
             closeIntro() {
-                this.sound.playClick();
                 document.getElementById('intro-modal').classList.add('hidden');
-                SaveSystem.save();
             },
 
-            toggleSound() {
-                this.soundEnabled = !this.soundEnabled;
-                this.sound.enabled = this.soundEnabled;
-                this.updateSoundButton();
-                this.sound.playClick();
-            },
-
-            updateSoundButton() {
-                const btn = document.getElementById('sound-btn');
-                const modalBtn = document.getElementById('sound-toggle-btn');
-                if (this.soundEnabled) {
-                    if(btn) btn.innerHTML = '<i class="fa-solid fa-volume-high text-sm"></i>';
-                    if(modalBtn) { modalBtn.innerText = 'ON'; modalBtn.className = 'px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-lg shadow-blue-500/30'; }
+            toggleVehicle() {
+                this.inVehicle = !this.inVehicle;
+                const btnText = document.getElementById('veh-btn-text');
+                if (this.inVehicle) {
+                    btnText.innerText = "EXIT CAR (F)";
+                    this.showToast("Entered Sports Cruiser!", "success");
                 } else {
-                    if(btn) btn.innerHTML = '<i class="fa-solid fa-volume-xmark text-sm text-red-400"></i>';
-                    if(modalBtn) { modalBtn.innerText = 'OFF'; modalBtn.className = 'px-4 py-2 rounded-xl bg-slate-700 text-slate-400 font-bold text-xs'; }
+                    btnText.innerText = "ENTER CAR (F)";
+                    this.showToast("Exited vehicle.", "info");
                 }
             },
 
-            generateInitialOrders() {
-                this.activeOrders = [
-                    { id: 'ord_1', company: 'Metro Components', product: 'shaft', qty: 25, delivered: 0, deadlineDays: 3, reward: 2375 },
-                    { id: 'ord_2', company: 'Nova Motors', product: 'bracket', qty: 15, delivered: 0, deadlineDays: 4, reward: 1800 }
-                ];
+            playerPunch() {
+                this.showToast("Punch / Attack executed!", "info");
             },
 
-            update(dt) {
-                this.dayTimer += dt;
-                if (this.dayTimer >= CONFIG.dayDurationSeconds) {
-                    this.dayTimer = 0;
-                    this.advanceDay();
-                }
+            movePlayer(dir) {
+                World3D.moveCharacter(dir);
+            },
 
-                this.machines.forEach(machine => {
-                    const worker = this.workers.find(w => w.assignedMachine === machine.id);
-                    if (!machine.producing) {
-                        for (let prodKey in PRODUCTS_DATA) {
-                            const prod = PRODUCTS_DATA[prodKey];
-                            if (prod.reqMachine === machine.type && this.rawMaterials.steel >= 10) {
-                                machine.producing = prodKey;
-                                machine.progress = 0;
-                                break;
-                            }
-                        }
-                    } else {
-                        let speedMultiplier = worker ? (1 + worker.speedBonus / 100) : 1;
-                        let condMultiplier = machine.condition / 100;
-                        const prodData = PRODUCTS_DATA[machine.producing];
-                        
-                        machine.progress += (dt * speedMultiplier * condMultiplier) / prodData.time;
-
-                        if (machine.progress >= 1) {
-                            machine.progress = 0;
-                            machine.producing = null;
-                            if (this.rawMaterials.steel >= 10) {
-                                this.rawMaterials.steel -= 10;
-                                this.inventory[machine.producing] = (this.inventory[machine.producing] || 0) + 1;
-                                this.addXP(15);
-                                
-                                this.activeOrders.forEach(ord => {
-                                    if (ord.delivered < ord.qty && this.inventory[ord.product] > 0) {
-                                        this.inventory[ord.product]--;
-                                        ord.delivered++;
-                                        if (ord.delivered === ord.qty) {
-                                            this.money += ord.reward;
-                                            this.reputation = Math.min(100, this.reputation + 3);
-                                            this.sound.playCash();
-                                            UI.showNotification(`Order completed for ${ord.company}! Earned ₹${ord.reward}`, 'success');
-                                        }
-                                    }
-                                });
-                            }
-                        }
+            setupKeyboard() {
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.key.toLowerCase()] = true;
+                    if (e.key.toLowerCase() === 'f') {
+                        this.toggleVehicle();
                     }
                 });
-
-                Renderer3D.updateAnimations(dt);
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.key.toLowerCase()] = false;
+                });
             },
 
-            advanceDay() {
-                this.day++;
-                let totalSalary = this.workers.reduce((acc, w) => acc + w.salary, 0);
-                let totalMaint = this.machines.reduce((acc, m) => acc + 1500, 0);
-                let totalExpense = totalSalary + totalMaint;
-
-                this.money -= totalExpense;
-                if (this.money < 0) this.money = 0;
-
-                for (let mat in this.rawMaterials) {
-                    let change = (Math.random() * 0.1 - 0.05);
-                    RAW_MATERIALS[mat].price = Math.max(50, Math.round(RAW_MATERIALS[mat].price * (1 + change)));
-                }
-
-                if (Math.random() > 0.3 && this.activeOrders.length < 5) {
-                    const comp = CUSTOMERS_LIST[Math.floor(Math.random() * CUSTOMERS_LIST.length)];
-                    const prodKeys = Object.keys(PRODUCTS_DATA);
-                    const prodKey = prodKeys[Math.floor(Math.random() * prodKeys.length)];
-                    const prod = PRODUCTS_DATA[prodKey];
-                    const qty = Math.floor(Math.random() * 20) + 10;
-                    const reward = Math.round(qty * prod.sellPrice * 0.9);
-                    
-                    this.activeOrders.push({
-                        id: 'ord_' + Date.now(), company: comp.name, product: prodKey,
-                        qty: qty, delivered: 0, deadlineDays: 4, reward: reward
-                    });
-                    UI.showNotification(`New order received from ${comp.name}!`, 'info');
-                }
-
-                UI.showNotification(`Day ${this.day} started. Salaries & maintenance paid: ₹${totalExpense}`, 'info');
-                this.updateUIStats();
-                SaveSystem.save();
+            updateHUD() {
+                document.getElementById('stat-money').innerText = this.money.toLocaleString('en-IN');
+                document.getElementById('stat-health').innerText = this.health;
             },
 
-            addXP(amount) {
-                this.factoryXP += amount;
-                let needed = this.factoryLevel * 200;
-                if (this.factoryXP >= needed) {
-                    this.factoryXP -= needed;
-                    this.factoryLevel++;
-                    this.sound.playSuccess();
-                    UI.showNotification(`Factory leveled up to Level ${this.factoryLevel}!`, 'success');
-                }
-                this.updateUIStats();
-            },
-
-            updateUIStats() {
-                const elMoney = document.getElementById('stat-money');
-                const elRep = document.getElementById('stat-rep');
-                const elDay = document.getElementById('stat-day');
-                const elBadge = document.getElementById('factory-level-badge');
-                const elXP = document.getElementById('xp-bar');
-
-                if (elMoney) elMoney.innerText = this.money.toLocaleString('en-IN');
-                if (elRep) elRep.innerText = this.reputation;
-                if (elDay) elDay.innerText = `Day ${this.day}`;
-                if (elBadge) elBadge.innerText = `Workshop Lv.${this.factoryLevel}`;
-                if (elXP) {
-                    let needed = this.factoryLevel * 200;
-                    elXP.style.width = `${Math.min(100, (this.factoryXP / needed) * 100)}%`;
-                }
-
-                if (UI.currentTab) { UI.renderTabContent(UI.currentTab); }
-            },
-
-            setupEvents() {
-                window.addEventListener('resize', () => { Renderer3D.onWindowResize(); });
+            showToast(text, type = 'info') {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                toast.className = `hud-panel px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-100 shadow-2xl mission-toast border border-blue-500/40`;
+                toast.innerText = text;
+                container.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
             }
         };
 
-        // --- ULTRA-POLISHED 3D RENDERER WITH STUNNING INDUSTRIAL LIGHTING & PROCEDURAL CAD MODELS ---
-        const Renderer3D = {
+        // --- 3D OPEN WORLD RENDERER (Three.js) ---
+        const World3D = {
             scene: null,
             camera: null,
             renderer: null,
             controls: null,
-            machineMeshes: [],
-            workerMeshes: [],
-            loader: new THREE.GLTFLoader(),
-
-            openSourceURLs: {
-                factory: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb",
-                lathe: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RigidBodyWithCone/glTF-Binary/RigidBodyWithCone.glb",
-                cnc: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/GearboxAssy/glTF-Binary/GearboxAssy.glb",
-                worker: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb"
-            },
+            playerMesh: null,
+            carMesh: null,
+            playerPos: { x: 0, z: 0 },
+            carPos: { x: 5, z: 5 },
 
             init() {
                 const container = document.getElementById('canvas-container');
-                
+
                 this.scene = new THREE.Scene();
-                this.scene.background = new THREE.Color(0x050914);
-                this.scene.fog = new THREE.FogExp2(0x050914, 0.01);
+                this.scene.background = new THREE.Color(0x0b0f19);
+                this.scene.fog = new THREE.FogExp2(0x0b0f19, 0.015);
 
                 const aspect = window.innerWidth / window.innerHeight;
-                this.camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 1000);
-                this.camera.position.set(16, 18, 20);
+                this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
+                this.camera.position.set(0, 15, 20);
 
                 this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
                 this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                 this.renderer.shadowMap.enabled = true;
                 this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                this.renderer.outputEncoding = THREE.sRGBEncoding;
-                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-                this.renderer.toneMappingExposure = 1.2;
                 container.appendChild(this.renderer.domElement);
 
-                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-                this.controls.enableDamping = true;
-                this.controls.dampingFactor = 0.05;
-                this.controls.maxPolarAngle = Math.PI / 2 - 0.04;
-                this.controls.minDistance = 6;
-                this.controls.maxDistance = 40;
-                this.controls.target.set(0, 0, 0);
-
-                // Professional studio-grade lighting setup
-                const ambientLight = new THREE.AmbientLight(0xdbeafe, 1.1);
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x94a3b8, 0.8);
                 this.scene.add(ambientLight);
 
-                const mainLight = new THREE.DirectionalLight(0xfffbeb, 1.8);
-                mainLight.position.set(20, 35, 20);
-                mainLight.castShadow = true;
-                mainLight.shadow.mapSize.width = 2048;
-                mainLight.shadow.mapSize.height = 2048;
-                mainLight.shadow.camera.near = 0.5;
-                mainLight.shadow.camera.far = 70;
-                const d = 16;
-                mainLight.shadow.camera.left = -d; mainLight.shadow.camera.right = d;
-                mainLight.shadow.camera.top = d; mainLight.shadow.camera.bottom = -d;
-                mainLight.shadow.bias = -0.0005;
-                this.scene.add(mainLight);
+                const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.4);
+                dirLight.position.set(20, 40, 20);
+                dirLight.castShadow = true;
+                this.scene.add(dirLight);
 
-                // Accent cyan overhead industrial neon light
-                const cyanLight = new THREE.PointLight(0x38bdf8, 2, 35);
-                cyanLight.position.set(-10, 14, -10);
-                this.scene.add(cyanLight);
+                this.buildCity();
+                this.buildPlayerAndCar();
 
-                // Accent warm orange workshop light
-                const orangeLight = new THREE.PointLight(0xf97316, 1.5, 35);
-                orangeLight.position.set(10, 14, 10);
-                this.scene.add(orangeLight);
-
-                this.buildEnvironment();
-                this.buildMachinesAndWorkers();
+                let lastTime = performance.now();
+                const loop = (currentTime) => {
+                    const dt = (currentTime - lastTime) / 1000;
+                    lastTime = currentTime;
+                    this.update(dt);
+                    requestAnimationFrame(loop);
+                };
+                requestAnimationFrame(loop);
             },
 
-            getCustomAsset(key) {
-                try {
-                    const custom = JSON.parse(localStorage.getItem('aethercore_custom_assets') || '{}');
-                    return custom[key] || this.openSourceURLs[key] || '';
-                } catch(e) {
-                    return this.openSourceURLs[key] || '';
-                }
+            buildCity() {
+                // Asphalt Street Grid
+                const groundGeo = new THREE.PlaneGeometry(120, 120);
+                const groundMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+                const ground = new THREE.Mesh(groundGeo, groundMat);
+                ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                this.scene.add(ground);
+
+                // Procedural City Skyscrapers
+                const buildingMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4, metalness: 0.6 });
+                const positions = [
+                    {-15, -15}, {15, -15}, {-15, 15}, {15, 15},
+                    {-30, -30}, {30, -30}, {-30, 30}, {30, 30},
+                    {0, -35}, {0, 35}, {-35, 0}, {35, 0}
+                ];
+
+                positions.forEach((pos, i) => {
+                    const h = Math.random() * 15 + 10;
+                    const bGeo = new THREE.BoxGeometry(8, h, 8);
+                    const bMesh = new THREE.Mesh(bGeo, buildingMat);
+                    bMesh.position.set(pos.x, h / 2, pos.y);
+                    bMesh.castShadow = true; bMesh.receiveShadow = true;
+                    this.scene.add(bMesh);
+                });
             },
 
-            buildEnvironment() {
-                // High-end polished epoxy industrial floor
-                const floorGeo = new THREE.PlaneGeometry(26, 26);
-                const floorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.25, metalness: 0.85 });
-                const floor = new THREE.Mesh(floorGeo, floorMat);
-                floor.rotation.x = -Math.PI / 2;
-                floor.receiveShadow = true;
-                this.scene.add(floor);
+            buildPlayerAndCar() {
+                // Player Avatar (GTA 3 Claude Style)
+                const pMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.5 });
+                this.playerMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.6, 12), pMat);
+                this.playerMesh.position.set(0, 0.8, 0);
+                this.playerMesh.castShadow = true;
+                this.scene.add(this.playerMesh);
 
-                const grid = new THREE.GridHelper(26, 26, 0x3b82f6, 0x1e293b);
-                grid.position.y = 0.01;
-                this.scene.add(grid);
-
-                // Perimeter reinforced walls
-                const wallMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8, metalness: 0.3 });
-                [-13, 13].forEach(x => {
-                    const wall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6, 26), wallMat);
-                    wall.position.set(x, 3, 0); wall.castShadow = true; this.scene.add(wall);
-                });
-                [-13, 13].forEach(z => {
-                    const wall = new THREE.Mesh(new THREE.BoxGeometry(26, 6, 0.4), wallMat);
-                    wall.position.set(0, 3, z); wall.castShadow = true; this.scene.add(wall);
-                });
-
-                // Warehouse Heavy Steel Racks with finished surface details
-                const rackGeo = new THREE.BoxGeometry(3.2, 3.2, 1.4);
-                const rackMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.25 });
-                
-                const rawRack = new THREE.Mesh(rackGeo, rackMat);
-                rawRack.position.set(-9.5, 1.6, -7.5); rawRack.castShadow = true; rawRack.receiveShadow = true;
-                this.scene.add(rawRack);
-
-                const finishedRack = new THREE.Mesh(rackGeo, rackMat);
-                finishedRack.position.set(9.5, 1.6, -7.5); finishedRack.castShadow = true; finishedRack.receiveShadow = true;
-                this.scene.add(finishedRack);
-
-                // Executive Glass Control Office
-                const officeMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.1, metalness: 0.9, transparent: true, opacity: 0.5 });
-                const office = new THREE.Mesh(new THREE.BoxGeometry(5.5, 4, 4), officeMat);
-                office.position.set(8, 2, -9.5); office.castShadow = true; office.receiveShadow = true;
-                this.scene.add(office);
+                // Sports Car
+                const carMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.2, metalness: 0.9 });
+                this.carMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 4), carMat);
+                this.carMesh.position.set(5, 0.5, 5);
+                this.carMesh.castShadow = true;
+                this.scene.add(this.carMesh);
             },
 
-            buildMachinesAndWorkers() {
-                this.machineMeshes.forEach(m => this.scene.remove(m.group));
-                this.machineMeshes = [];
-                this.workerMeshes.forEach(w => this.scene.remove(w.group));
-                this.workerMeshes = [];
+            movePlayer(dir) {
+                const speed = 1.5;
+                if (dir === 'UP') this.playerPos.z -= speed;
+                if (dir === 'DOWN') this.playerPos.z += speed;
+                if (dir === 'LEFT') this.playerPos.x -= speed;
+                if (dir === 'RIGHT') this.playerPos.x += speed;
+            },
 
-                const latheUrl = this.getCustomAsset('lathe');
-                const cncUrl = this.getCustomAsset('cnc');
-                const workerUrl = this.getCustomAsset('worker');
+            update(dt) {
+                const speed = 4 * dt;
+                if (Game.keys['w'] || Game.keys['arrowup']) this.playerPos.z -= speed;
+                if (Game.keys['s'] || Game.keys['arrowdown']) this.playerPos.z += speed;
+                if (Game.keys['a'] || Game.keys['arrowleft']) this.playerPos.x -= speed;
+                if (Game.keys['d'] || Game.keys['arrowright']) this.playerPos.x += speed;
 
-                Game.machines.forEach((machData) => {
-                    const group = new THREE.Group();
-                    let assetUrl = (machData.type === 'cnc_lathe' || machData.type === 'vmc') ? cncUrl : latheUrl;
+                if (this.playerMesh) {
+                    this.playerMesh.position.x = this.playerPos.x;
+                    this.playerMesh.position.z = this.playerPos.z;
 
-                    this.loader.load(assetUrl, (gltf) => {
-                        const model = gltf.scene;
-                        model.scale.set(0.9, 0.9, 0.9);
-                        model.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
-                        group.add(model);
-                    }, undefined, () => {
-                        this.buildProfessionalMachine(group, machData.type);
-                    });
-                    this.buildProfessionalMachine(group, machData.type);
-
-                    group.position.set(machData.x, 0, machData.z);
-                    this.scene.add(group);
-                    this.machineMeshes.push({ id: machData.id, group: group, data: machData });
-                });
-
-                Game.workers.forEach((workerData, index) => {
-                    const wGroup = new THREE.Group();
-
-                    this.loader.load(workerUrl, (gltf) => {
-                        const model = gltf.scene;
-                        model.scale.set(0.65, 0.65, 0.65);
-                        model.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
-                        wGroup.add(model);
-                    }, undefined, () => {
-                        this.buildProfessionalWorker(wGroup);
-                    });
-                    this.buildProfessionalWorker(wGroup);
-
-                    const assignedMach = Game.machines.find(m => m.id === workerData.assignedMachine);
-                    if (assignedMach) {
-                        wGroup.position.set(assignedMach.x + 1.2, 0, assignedMach.z + 0.5);
+                    if (Game.inVehicle && this.carMesh) {
+                        this.carMesh.position.x = this.playerPos.x + 1;
+                        this.carMesh.position.z = this.playerPos.z;
+                        this.camera.position.set(this.carMesh.position.x, this.carMesh.position.y + 8, this.carMesh.position.z + 12);
+                        this.camera.lookAt(this.carMesh.position);
                     } else {
-                        wGroup.position.set((index - 0.5) * 3.5, 0, 4);
+                        this.camera.position.set(this.playerMesh.position.x, this.playerMesh.position.y + 6, this.playerMesh.position.z + 10);
+                        this.camera.lookAt(this.playerMesh.position);
                     }
+                }
 
-                    this.scene.add(wGroup);
-                    this.workerMeshes.push({ id: workerData.id, group: wGroup, data: workerData });
-                });
-            },
-
-            buildProfessionalMachine(group, type) {
-                // High-end CAD styled industrial machine base
-                const bodyGeo = new THREE.BoxGeometry(2.2, 1.7, 1.8);
-                let col = 0x2563eb;
-                if (type === 'lathe') col = 0x1d4ed8;
-                if (type === 'drill') col = 0x059669;
-                if (type === 'milling') col = 0xd97706;
-                if (type === 'cnc_lathe') col = 0x4f46e5;
-                if (type === 'vmc') col = 0xdb2777;
-
-                const bodyMat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.3, metalness: 0.8 });
-                const body = new THREE.Mesh(bodyGeo, bodyMat);
-                body.position.y = 0.85; body.castShadow = true; body.receiveShadow = true;
-                group.add(body);
-
-                // Polished metal machining spindle head
-                const spindleGeo = new THREE.CylinderGeometry(0.35, 0.35, 1.2, 16);
-                const spindleMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.15, metalness: 0.95 });
-                const spindle = new THREE.Mesh(spindleGeo, spindleMat);
-                spindle.rotation.z = Math.PI / 2;
-                spindle.position.set(0, 1.2, 0); spindle.castShadow = true;
-                group.add(spindle);
-
-                // Transparent tempered safety glass enclosure
-                const glassMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.1, metalness: 0.9, transparent: true, opacity: 0.35 });
-                const glass = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.1, 0.08), glassMat);
-                glass.position.set(0, 1.05, 0.92);
-                group.add(glass);
-
-                // Digital CNC control monitor console
-                const consoleMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2, metalness: 0.5 });
-                const consoleBox = new THREE.Mesh(new BoxGeometry = new THREE.BoxGeometry(0.6, 0.6, 0.25), consoleMat);
-                consoleBox.position.set(0.7, 1.5, 0.85); consoleBox.castShadow = true;
-                group.add(consoleBox);
-            },
-
-            buildProfessionalWorker(wGroup) {
-                // Highly detailed professional technician avatar
-                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e40af, roughness: 0.4, metalness: 0.3 });
-                const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.2, 1.1, 16), bodyMat);
-                body.position.y = 0.55; body.castShadow = true;
-                wGroup.add(body);
-
-                const headMat = new THREE.MeshStandardMaterial({ color: 0xfde047, roughness: 0.5 });
-                const head = new THREE.Mesh(new THREE.SphereGeometry(0.21, 16, 16), headMat);
-                head.position.y = 1.24; head.castShadow = true;
-                wGroup.add(head);
-
-                const hatMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.2, metalness: 0.6 });
-                const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.26, 0.1, 16), hatMat);
-                hat.position.y = 1.4; hat.castShadow = true;
-                wGroup.add(hat);
-            },
-
-            updateAnimations(dt) {
-                this.workerMeshes.forEach((w, i) => {
-                    w.group.position.y = Math.sin(Date.now() * 0.004 + i) * 0.025;
-                });
-                if (this.controls) this.controls.update();
                 if (this.renderer && this.scene && this.camera) {
                     this.renderer.render(this.scene, this.camera);
                 }
@@ -814,319 +351,8 @@
             }
         };
 
-        const UI = {
-            currentTab: null,
-            switchTab(tabName) {
-                Game.sound.playClick();
-                if (this.currentTab === tabName) { this.closeTab(); return; }
-                this.currentTab = tabName;
-                const container = document.getElementById('tab-content-container');
-                container.classList.remove('hidden');
-
-                ['factory', 'orders', 'inventory', 'machines', 'staff', 'upgrades'].forEach(t => {
-                    const btn = document.getElementById(`nav-btn-${t}`);
-                    if (btn) {
-                        if (t === tabName) {
-                            btn.className = "flex flex-col items-center justify-center py-2 px-3 md:px-5 rounded-xl text-blue-400 bg-blue-500/15 border border-blue-500/30 transition-all scale-105";
-                        } else {
-                            btn.className = "flex flex-col items-center justify-center py-2 px-3 md:px-5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all";
-                        }
-                    }
-                });
-                this.renderTabContent(tabName);
-            },
-            closeTab() {
-                Game.sound.playClick();
-                this.currentTab = null;
-                document.getElementById('tab-content-container').classList.add('hidden');
-                ['factory', 'orders', 'inventory', 'machines', 'staff', 'upgrades'].forEach(t => {
-                    const btn = document.getElementById(`nav-btn-${t}`);
-                    if (btn) btn.className = "flex flex-col items-center justify-center py-2 px-3 md:px-5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all";
-                });
-            },
-            renderTabContent(tabName) {
-                const titleEl = document.getElementById('tab-window-title');
-                const iconEl = document.getElementById('tab-window-icon');
-                const bodyEl = document.getElementById('tab-window-body');
-
-                switch(tabName) {
-                    case 'factory':
-                        titleEl.innerText = "Factory Plant Overview";
-                        iconEl.innerHTML = '<i class="fa-solid fa-industry"></i>';
-                        bodyEl.innerHTML = `
-                            <div class="space-y-4">
-                                <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
-                                    <div>
-                                        <div class="font-bold text-base text-slate-100">Workshop Level ${Game.factoryLevel}</div>
-                                        <div class="text-xs text-slate-400">Expand your floor area to house more professional industrial machinery.</div>
-                                    </div>
-                                    <button onclick="UI.expandFactory()" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/30">EXPAND (₹${Game.factoryLevel * 75000})</button>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div class="glass-card p-4 rounded-2xl">
-                                        <div class="text-xs text-slate-400 mb-1">Active Machines</div>
-                                        <div class="text-xl font-extrabold text-blue-400">${Game.machines.length} Units</div>
-                                    </div>
-                                    <div class="glass-card p-4 rounded-2xl">
-                                        <div class="text-xs text-slate-400 mb-1">Assigned Workforce</div>
-                                        <div class="text-xl font-extrabold text-emerald-400">${Game.workers.length} Technicians</div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        break;
-                    case 'orders':
-                        titleEl.innerText = "Customer Procurement Orders";
-                        iconEl.innerHTML = '<i class="fa-solid fa-file-contract"></i>';
-                        let ordersHTML = `<div class="space-y-3">`;
-                        if (Game.activeOrders.length === 0) {
-                            ordersHTML += `<div class="text-center py-10 text-slate-400">No active orders right now. Check back tomorrow!</div>`;
-                        } else {
-                            Game.activeOrders.forEach(ord => {
-                                const prod = PRODUCTS_DATA[ord.product];
-                                ordersHTML += `
-                                    <div class="glass-card p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                                        <div>
-                                            <div class="flex items-center space-x-2">
-                                                <span class="font-bold text-slate-100 text-sm">${ord.company}</span>
-                                                <span class="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">${prod.name}</span>
-                                            </div>
-                                            <div class="text-xs text-slate-400 mt-1">Required: <b>${ord.delivered} / ${ord.qty}</b> units</div>
-                                        </div>
-                                        <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-end">
-                                            <div class="text-right">
-                                                <div class="text-emerald-400 font-extrabold text-sm">₹${ord.reward.toLocaleString('en-IN')}</div>
-                                                <div class="text-[10px] text-slate-400">Reward</div>
-                                            </div>
-                                            <button onclick="UI.fulfillOrder('${ord.id}')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/30">DELIVER</button>
-                                        </div>
-                                    </div>
-                                `;
-                            });
-                        }
-                        ordersHTML += `</div>`;
-                        bodyEl.innerHTML = ordersHTML;
-                        break;
-                    case 'inventory':
-                        titleEl.innerText = "Stock & Inventory Warehouse";
-                        iconEl.innerHTML = '<i class="fa-solid fa-boxes-stacked"></i>';
-                        let invHTML = `
-                            <div class="space-y-6">
-                                <div>
-                                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Raw Materials Market</h3>
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        `;
-                        for (let mat in RAW_MATERIALS) {
-                            invHTML += `
-                                <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
-                                    <div>
-                                        <div class="font-bold text-slate-200 text-sm">${RAW_MATERIALS[mat].name}</div>
-                                        <div class="text-xs text-emerald-400 font-semibold mt-0.5">₹${RAW_MATERIALS[mat].price} / ${RAW_MATERIALS[mat].unit}</div>
-                                        <div class="text-xs text-slate-400 mt-1">Stock: <b>${Game.rawMaterials[mat]}</b> ${RAW_MATERIALS[mat].unit}</div>
-                                    </div>
-                                    <button onclick="UI.buyMaterial('${mat}', 50)" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/30">+50kg</button>
-                                </div>
-                            `;
-                        }
-                        invHTML += `</div></div><div><h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Finished Components Warehouse</h3><div class="grid grid-cols-2 md:grid-cols-4 gap-3">`;
-                        for (let prodKey in PRODUCTS_DATA) {
-                            invHTML += `
-                                <div class="glass-card p-3 rounded-2xl text-center">
-                                    <div class="font-bold text-slate-200 text-xs mb-1">${PRODUCTS_DATA[prodKey].name}</div>
-                                    <div class="text-lg font-extrabold text-blue-400">${Game.inventory[prodKey] || 0}</div>
-                                    <div class="text-[10px] text-slate-400 mt-0.5">Ready for delivery</div>
-                                </div>
-                            `;
-                        }
-                        invHTML += `</div></div></div>`;
-                        bodyEl.innerHTML = invHTML;
-                        break;
-                    case 'machines':
-                        titleEl.innerText = "Machinery Fleet Management";
-                        iconEl.innerHTML = '<i class="fa-solid fa-cogs"></i>';
-                        let machHTML = `<div class="space-y-4"><div class="flex justify-between items-center mb-2"><span class="text-xs font-bold uppercase tracking-wider text-slate-400">Available Shop Machines</span><button onclick="UI.openBuyMachineModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/30">+ PURCHASE MACHINE</button></div><div class="space-y-3">`;
-                        Game.machines.forEach(m => {
-                            const data = MACHINES_DATA[m.type];
-                            machHTML += `
-                                <div class="glass-card p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                                    <div>
-                                        <div class="flex items-center space-x-2">
-                                            <span class="font-bold text-slate-100 text-sm">${data.name}</span>
-                                            <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Condition: ${m.condition}%</span>
-                                        </div>
-                                        <div class="text-xs text-slate-400 mt-1">${data.desc}</div>
-                                    </div>
-                                    <button onclick="UI.maintainMachine('${m.id}')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700">MAINTAIN (₹1,500)</button>
-                                </div>
-                            `;
-                        });
-                        machHTML += `</div></div>`;
-                        bodyEl.innerHTML = machHTML;
-                        break;
-                    case 'staff':
-                        titleEl.innerText = "Factory Workforce & Technicians";
-                        iconEl.innerHTML = '<i class="fa-solid fa-users"></i>';
-                        let staffHTML = `<div class="space-y-4"><div class="flex justify-between items-center mb-2"><span class="text-xs font-bold uppercase tracking-wider text-slate-400">Employed Technicians</span><button onclick="UI.hireWorker()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/30">+ HIRE TECHNICIAN (₹15,000)</button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-3">`;
-                        Game.workers.forEach(w => {
-                            staffHTML += `
-                                <div class="glass-card p-4 rounded-2xl">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="font-bold text-slate-100 text-sm">${w.name}</span>
-                                        <span class="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">Skill: ${w.skill}%</span>
-                                    </div>
-                                    <div class="text-xs text-slate-400 space-y-1">
-                                        <div>Speed Bonus: <span class="text-emerald-400 font-bold">+${w.speedBonus}%</span></div>
-                                        <div>Daily Salary: <span class="text-amber-400 font-bold">₹${w.salary}</span></div>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                        staffHTML += `</div></div>`;
-                        bodyEl.innerHTML = staffHTML;
-                        break;
-                    case 'upgrades':
-                        titleEl.innerText = "Industrial Plant Upgrades";
-                        iconEl.innerHTML = '<i class="fa-solid fa-rocket"></i>';
-                        bodyEl.innerHTML = `
-                            <div class="space-y-3">
-                                <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
-                                    <div>
-                                        <div class="font-bold text-slate-100 text-sm">Automated Material Conveyors</div>
-                                        <div class="text-xs text-slate-400">Increases base production speed across all machines by 15%.</div>
-                                    </div>
-                                    <button onclick="UI.showNotification('Conveyors already optimized!', 'info')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700">INSTALLED</button>
-                                </div>
-                                <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
-                                    <div>
-                                        <div class="font-bold text-slate-100 text-sm">Solar Power Plant Integration</div>
-                                        <div class="text-xs text-slate-400">Reduces daily electricity and energy maintenance costs by 30%.</div>
-                                    </div>
-                                    <button onclick="UI.buyUpgrade(50000)" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/30">UPGRADE (₹50,000)</button>
-                                </div>
-                            </div>
-                        `;
-                        break;
-                }
-            },
-            buyMaterial(matKey, amount) {
-                const cost = RAW_MATERIALS[matKey].price * amount;
-                if (Game.money >= cost) {
-                    Game.money -= cost; Game.rawMaterials[matKey] += amount;
-                    Game.sound.playCash();
-                    this.showNotification(`Purchased ${amount}kg of ${RAW_MATERIALS[matKey].name} for ₹${cost}`, 'success');
-                    Game.updateUIStats();
-                } else { this.showNotification('Insufficient funds!', 'error'); }
-            },
-            fulfillOrder(orderId) {
-                const ord = Game.activeOrders.find(o => o.id === orderId);
-                if (!ord) return;
-                const available = Game.inventory[ord.product] || 0;
-                const needed = ord.qty - ord.delivered;
-                const canDeliver = Math.min(available, needed);
-
-                if (canDeliver > 0) {
-                    Game.inventory[ord.product] -= canDeliver; ord.delivered += canDeliver;
-                    Game.sound.playCash();
-                    if (ord.delivered >= ord.qty) {
-                        Game.money += ord.reward; Game.reputation = Math.min(100, Game.reputation + 3);
-                        Game.activeOrders = Game.activeOrders.filter(o => o.id !== orderId);
-                        this.showNotification(`Order completed for ${ord.company}! +₹${ord.reward}`, 'success');
-                    } else { this.showNotification(`Delivered ${canDeliver} units to ${ord.company}`, 'success'); }
-                    Game.updateUIStats();
-                } else { this.showNotification('No finished components in inventory for this order!', 'error'); }
-            },
-            expandFactory() {
-                const cost = Game.factoryLevel * 75000;
-                if (Game.money >= cost) {
-                    Game.money -= cost; Game.factoryLevel++;
-                    Game.sound.playSuccess();
-                    this.showNotification(`Factory expanded to Level ${Game.factoryLevel}!`, 'success');
-                    Game.updateUIStats();
-                } else { this.showNotification('Insufficient funds for factory expansion!', 'error'); }
-            },
-            openBuyMachineModal() {
-                let html = `<div class="space-y-3">`;
-                for (let key in MACHINES_DATA) {
-                    const mach = MACHINES_DATA[key];
-                    html += `
-                        <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
-                            <div>
-                                <div class="font-bold text-slate-100 text-sm">${mach.name}</div>
-                                <div class="text-xs text-slate-400 mt-0.5">${mach.desc}</div>
-                                <div class="text-xs text-emerald-400 font-semibold mt-1">Price: ₹${mach.price.toLocaleString('en-IN')}</div>
-                            </div>
-                            <button onclick="UI.buyMachine('${key}')" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/30">PURCHASE</button>
-                        </div>
-                    `;
-                }
-                html += `</div>`;
-                document.getElementById('tab-window-title').innerText = "Purchase New Machinery";
-                document.getElementById('tab-window-body').innerHTML = html;
-            },
-            buyMachine(typeKey) {
-                const machData = MACHINES_DATA[typeKey];
-                if (Game.money >= machData.price) {
-                    Game.money -= machData.price;
-                    const newId = 'm_' + Date.now();
-                    Game.machines.push({ id: newId, type: typeKey, x: (Math.random() - 0.5) * 8, z: (Math.random() - 0.5) * 6, condition: 100, level: 1, producing: null, progress: 0 });
-                    Game.sound.playCash();
-                    Renderer3D.buildMachinesAndWorkers();
-                    this.showNotification(`Purchased ${machData.name} successfully!`, 'success');
-                    Game.updateUIStats(); this.switchTab('machines');
-                } else { this.showNotification('Insufficient funds!', 'error'); }
-            },
-            maintainMachine(machineId) {
-                const cost = 1500;
-                if (Game.money >= cost) {
-                    Game.money -= cost;
-                    const mach = Game.machines.find(m => m.id === machineId);
-                    if (mach) mach.condition = 100;
-                    Game.sound.playCash();
-                    this.showNotification('Machine maintenance completed!', 'success');
-                    Game.updateUIStats();
-                } else { this.showNotification('Insufficient funds for maintenance!', 'error'); }
-            },
-            hireWorker() {
-                const cost = 15000;
-                if (Game.money >= cost) {
-                    Game.money -= cost;
-                    const names = ['Ramesh', 'Suresh', 'Karthik', 'Divya', 'Ananya', 'Vijay'];
-                    const randomName = names[Math.floor(Math.random() * names.length)] + ' ' + Math.floor(Math.random() * 90 + 10);
-                    Game.workers.push({ id: 'w_' + Date.now(), name: randomName, skill: Math.floor(Math.random() * 30) + 60, speedBonus: Math.floor(Math.random() * 10) + 5, salary: 1500, assignedMachine: Game.machines[0] ? Game.machines[0].id : null });
-                    Game.sound.playCash();
-                    Renderer3D.buildMachinesAndWorkers();
-                    this.showNotification(`Hired technician ${randomName}!`, 'success');
-                    Game.updateUIStats(); this.switchTab('staff');
-                } else { this.showNotification('Insufficient funds to hire technician!', 'error'); }
-            },
-            buyUpgrade(cost) {
-                if (Game.money >= cost) {
-                    Game.money -= cost; Game.sound.playSuccess();
-                    this.showNotification('Upgrade installed successfully!', 'success');
-                    Game.updateUIStats();
-                } else { this.showNotification('Insufficient funds for upgrade!', 'error'); }
-            },
-            openModal(modalId) { Game.sound.playClick(); document.getElementById(modalId).classList.remove('hidden'); },
-            closeModal(modalId) { Game.sound.playClick(); document.getElementById(modalId).classList.add('hidden'); },
-            showNotification(text, type = 'info') {
-                const container = document.getElementById('notifications-container');
-                if (!container) return;
-                const notif = document.createElement('div');
-                let borderColor = 'border-blue-500/40'; let icon = 'fa-circle-info text-blue-400';
-                if (type === 'success') { borderColor = 'border-emerald-500/40'; icon = 'fa-circle-check text-emerald-400'; }
-                if (type === 'error') { borderColor = 'border-red-500/40'; icon = 'fa-circle-exclamation text-red-400'; }
-
-                notif.className = `glass-panel px-4 py-3 rounded-2xl flex items-center space-x-3 notification-card border ${borderColor} shadow-2xl`;
-                notif.innerHTML = `<i class="fa-solid ${icon} text-base"></i><span class="text-xs font-semibold text-slate-200">${text}</span>`;
-                container.appendChild(notif);
-                setTimeout(() => {
-                    notif.style.opacity = '0'; notif.style.transform = 'translateY(-10px)'; notif.style.transition = 'all 0.3s ease';
-                    setTimeout(() => notif.remove(), 300);
-                }, 3500);
-            }
-        };
-
         window.addEventListener('DOMContentLoaded', () => { Game.init(); });
+        window.addEventListener('resize', () => { World3D.onWindowResize(); });
     </script>
 </body>
 </html>
