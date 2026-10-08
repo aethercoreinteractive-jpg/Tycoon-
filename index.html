@@ -124,7 +124,7 @@
                 </div>
             </div>
 
-            <!-- Action Buttons: Enter Car, Attack, Jump -->
+            <!-- Action Buttons -->
             <div class="flex items-center space-x-3 hud-panel p-3 rounded-2xl shadow-2xl">
                 <button id="btn-vehicle" class="px-5 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-500/30 flex items-center space-x-2">
                     <i class="fa-solid fa-car text-base"></i>
@@ -157,17 +157,13 @@
 
     <!-- Game Engine Script -->
     <script>
-        /**
-         * Liberty City 3D - GTA III Web Engine
-         */
-
         const Game = {
             money: 5000,
             health: 100,
             armor: 100,
             wanted: 0,
             inVehicle: false,
-            keys: { up: false, down: false, left: false, right: false, action: false },
+            keys: { up: false, down: false, left: false, right: false },
 
             startGame() {
                 document.getElementById('intro-modal').classList.add('hidden');
@@ -194,7 +190,6 @@
                     if (k === 'd' || k === 'arrowright') this.keys.right = false;
                 });
 
-                // Virtual D-Pad bindings
                 const bindButton = (id, keyName) => {
                     const el = document.getElementById(id);
                     if (!el) return;
@@ -233,14 +228,12 @@
             }
         };
 
-        // --- THREE.JS 3D WORLD & VEHICLE ENGINE ---
         const World3D = {
             scene: null,
             camera: null,
             renderer: null,
             player: null,
             car: null,
-            pedestrians: [],
             playerPos: { x: 0, z: 0, angle: 0 },
             carPos: { x: 6, z: 6, angle: 0, speed: 0 },
 
@@ -260,7 +253,6 @@
                 this.renderer.shadowMap.enabled = true;
                 container.appendChild(this.renderer.domElement);
 
-                // Lighting
                 const ambient = new THREE.AmbientLight(0x818cf8, 0.9);
                 this.scene.add(ambient);
 
@@ -283,7 +275,6 @@
             },
 
             buildCityMap() {
-                // Asphalt Street Grid
                 const groundGeo = new THREE.PlaneGeometry(160, 160);
                 const groundMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
                 const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -291,7 +282,6 @@
                 ground.receiveShadow = true;
                 this.scene.add(ground);
 
-                // City Skyscrapers (Portland / Staunton Island style blocks)
                 const buildingMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3, metalness: 0.5 });
                 const coords = [
                     {-20, -20}, {20, -20}, {-20, 20}, {20, 20},
@@ -310,14 +300,12 @@
             },
 
             buildEntities() {
-                // Player Avatar (Claude)
                 const pMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.5 });
                 this.player = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.6, 12), pMat);
                 this.player.position.set(0, 0.8, 0);
                 this.player.castShadow = true;
                 this.scene.add(this.player);
 
-                // Sports Car (Infernus style)
                 const cMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.2, metalness: 0.9 });
                 this.car = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.1, 4.4), cMat);
                 this.car.position.set(6, 0.55, 6);
@@ -352,7 +340,6 @@
                 const turnSpeed = 3 * dt;
 
                 if (!Game.inVehicle) {
-                    // Player Movement
                     if (Game.keys.up) {
                         this.playerPos.x -= Math.sin(this.playerPos.angle) * moveSpeed;
                         this.playerPos.z -= Math.cos(this.playerPos.angle) * moveSpeed;
@@ -368,7 +355,6 @@
                     this.player.position.z = this.playerPos.z;
                     this.player.rotation.y = this.playerPos.angle;
 
-                    // Camera Follow Player
                     this.camera.position.set(
                         this.playerPos.x + Math.sin(this.playerPos.angle) * 8,
                         this.player.position.y + 5,
@@ -377,7 +363,6 @@
                     this.camera.lookAt(this.player.position);
 
                 } else {
-                    // Car Driving Physics
                     if (Game.keys.up) this.carPos.speed = Math.min(this.carPos.speed + 12 * dt, 18);
                     else if (Game.keys.down) this.carPos.speed = Math.max(this.carPos.speed - 12 * dt, -8);
                     else this.carPos.speed *= 0.95;
@@ -391,11 +376,9 @@
                     this.car.position.set(this.carPos.x, 0.55, this.carPos.z);
                     this.car.rotation.y = this.carPos.angle;
 
-                    // Sync player pos with car
                     this.playerPos.x = this.carPos.x;
                     this.playerPos.z = this.carPos.z;
 
-                    // Camera Follow Car
                     this.camera.position.set(
                         this.carPos.x + Math.sin(this.carPos.angle) * 12,
                         this.car.position.y + 6,
@@ -415,7 +398,6 @@
             }
         };
 
-        window.addEventListener('DOMContentLoaded', () => {});
         window.addEventListener('resize', () => World3D.onWindowResize());
     </script>
 </body>
