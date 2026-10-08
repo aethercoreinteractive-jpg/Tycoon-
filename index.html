@@ -1,0 +1,266 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aethercore Mechanics - Industrial Tycoon</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <!-- Load Three.js and OrbitControls via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body class="overflow-hidden select-none bg-slate-950 font-['Outfit'] text-slate-100">
+
+    <!-- Top HUD Bar -->
+    <header class="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 shadow-xl">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 text-white font-black text-xl">
+                <i class="fa-solid fa-industry"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-base tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">AETHERCORE</h1>
+                <div class="flex items-center space-x-2 text-xs text-slate-400 font-medium">
+                    <span id="hud-factory-level">Factory Lvl 1</span>
+                    <span>•</span>
+                    <span id="hud-day" class="text-amber-400 font-semibold">Day 1</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3 sm:space-x-6">
+            <!-- Money Badge -->
+            <div class="flex items-center space-x-1.5 bg-slate-950/80 px-3 py-1.5 rounded-full border border-emerald-500/30 shadow-inner">
+                <i class="fa-solid fa-indian-rupee-sign text-emerald-400 text-sm"></i>
+                <span id="hud-money" class="font-bold text-emerald-400 text-sm sm:text-base">100,000</span>
+            </div>
+            <!-- Reputation Badge -->
+            <div class="flex items-center space-x-1.5 bg-slate-950/80 px-3 py-1.5 rounded-full border border-amber-500/30 shadow-inner">
+                <i class="fa-solid fa-star text-amber-400 text-sm"></i>
+                <span id="hud-reputation" class="font-bold text-amber-400 text-sm sm:text-base">50</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main 3D Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+    <!-- Floating Camera / Controls Hint -->
+    <div class="absolute top-20 right-4 z-20 hidden md:flex flex-col space-y-2 pointer-events-none">
+        <div class="bg-slate-900/80 backdrop-blur border border-slate-800 p-2 rounded-xl text-xs text-slate-400 shadow-lg flex items-center space-x-2">
+            <i class="fa-solid fa-arrows-alt text-cyan-400"></i>
+            <span>Drag to rotate view | Scroll to zoom</span>
+        </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="absolute top-24 left-1/2 transform -translate-x-1/2 z-40 flex flex-col items-center space-y-2 pointer-events-none w-11/12 max-w-md"></div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="absolute bottom-0 left-0 right-0 z-30 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-2 py-2 sm:px-6 shadow-2xl">
+        <div class="max-w-4xl mx-auto grid grid-cols-7 gap-1">
+            <button onclick="switchTab('factory')" id="nav-factory" class="nav-btn flex flex-col items-center justify-center py-2 px-1 rounded-xl text-cyan-400 bg-cyan-500/10 transition-all">
+                <i class="fa-solid fa-cubes text-lg mb-1"></i>
+                <span class="text-[10px] font-semibold tracking-wider">Plant</span>
+            </button>
+            <button onclick="switchTab('orders')" id="nav-orders" class="nav-btn flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-file-invoice-dollar text-lg mb-1"></i>
+                <span class="text-[10px] font-semibold tracking-wider">Orders</span>
+            </button>
+            <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-btn flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-boxes-stacked text-lg mb-1"></i>
+                <span class="text-[10px] font-semibold tracking-wider">Stock</span>
+            </button>
+            <button onclick="switchTab('machines')" id="nav-machines" class="nav-btn flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-gears text-lg mb-1"></i>
+                <span class="text-[10px] font-semibold tracking-wider">Machines</span>
+            </button>
+            <button onclick="switchTab('staff')" id="nav-staff" class="nav-btn flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-users-gear text-lg mb-1"></i>
+                <span class="text-[10px] font-semibold tracking-wider">Staff</span>
+            </button>
+            <button onclick="switchTab('upgrades')" id="nav-upgrades" class="nav-btn flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-arrow-up-right-dots text-lg mb-1"></i>
+                <span class="text-[10px] font-semibold tracking-wider">Expand</span>
+            </button>
+            <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-gear text-lg mb-1"></i>
+                <span class="text-[10px] font-semibold tracking-wider">Config</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Modal / Tab Content Overlay Container -->
+    <div id="modal-container" class="absolute inset-x-0 top-16 bottom-20 z-20 pointer-events-none flex items-center justify-center p-4 hidden">
+        
+        <!-- FACTORY PANEL -->
+        <div id="panel-factory" class="tab-panel w-full max-w-2xl bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-2xl pointer-events-auto hidden flex flex-col max-h-full">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                <h2 class="text-xl font-bold flex items-center space-x-2 text-cyan-400"><i class="fa-solid fa-cubes"></i> <span>Plant Operations</span></h2>
+                <button onclick="closeModals()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="overflow-y-auto space-y-4 pr-1">
+                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                    <div>
+                        <h3 id="factory-level-title" class="font-bold text-lg text-cyan-300">Small Workshop (Level 1)</h3>
+                        <p class="text-xs text-slate-400 mt-1">XP Progress: <span id="factory-xp-text">0 / 300</span></p>
+                        <div class="w-48 bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
+                            <div id="factory-xp-bar" class="bg-cyan-500 h-full w-0 transition-all duration-300"></div>
+                        </div>
+                    </div>
+                    <button onclick="switchTab('upgrades')" class="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-cyan-600/30">Expand Plant</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                        <h4 class="font-bold text-sm text-slate-300 mb-2 flex items-center space-x-2"><i class="fa-solid fa-chart-line text-emerald-400"></i><span>Plant Metrics</span></h4>
+                        <ul class="space-y-2 text-xs text-slate-400">
+                            <li class="flex justify-between"><span>Efficiency:</span> <strong id="metric-efficiency" class="text-emerald-400">92%</strong></li>
+                            <li class="flex justify-between"><span>Active Machines:</span> <strong id="metric-machines" class="text-cyan-400">2 / 2</strong></li>
+                            <li class="flex justify-between"><span>Employed Workers:</span> <strong id="metric-workers" class="text-amber-400">2</strong></li>
+                            <li class="flex justify-between"><span>Average Quality:</span> <strong id="metric-quality" class="text-indigo-400">95%</strong></li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                        <h4 class="font-bold text-sm text-slate-300 mb-2 flex items-center space-x-2"><i class="fa-solid fa-bolt text-amber-400"></i><span>Power & Upkeep</span></h4>
+                        <ul class="space-y-2 text-xs text-slate-400">
+                            <li class="flex justify-between"><span>Energy Consumption:</span> <strong id="metric-energy" class="text-amber-300">10 kW</strong></li>
+                            <li class="flex justify-between"><span>Daily Salaries:</span> <strong id="metric-salaries" class="text-rose-400">₹3,000</strong></li>
+                            <li class="flex justify-between"><span>Daily Maintenance:</span> <strong id="metric-maint" class="text-rose-400">₹1,500</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ORDERS PANEL -->
+        <div id="panel-orders" class="tab-panel w-full max-w-2xl bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-2xl pointer-events-auto hidden flex flex-col max-h-full">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                <h2 class="text-xl font-bold flex items-center space-x-2 text-cyan-400"><i class="fa-solid fa-file-invoice-dollar"></i> <span>Customer Orders</span></h2>
+                <button onclick="closeModals()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="orders-list" class="overflow-y-auto space-y-3 pr-1">
+                <!-- Dynamically populated orders -->
+            </div>
+        </div>
+
+        <!-- INVENTORY PANEL -->
+        <div id="panel-inventory" class="tab-panel w-full max-w-2xl bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-2xl pointer-events-auto hidden flex flex-col max-h-full">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                <h2 class="text-xl font-bold flex items-center space-x-2 text-cyan-400"><i class="fa-solid fa-boxes-stacked"><span>Inventory & Purchasing</span></h2>
+                <button onclick="closeModals()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto pr-1">
+                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                    <h3 class="font-bold text-sm text-cyan-300 mb-3 flex items-center space-x-2"><i class="fa-solid fa-cubes-stacked"></i><span>Raw Materials Market</span></h3>
+                    <div id="raw-materials-list" class="space-y-3"></div>
+                </div>
+                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                    <h3 class="font-bold text-sm text-emerald-300 mb-3 flex items-center space-x-2"><i class="fa-solid fa-warehouse"></i><span>Warehouse Finished Stock</span></h3>
+                    <div id="finished-goods-list" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MACHINES PANEL -->
+        <div id="panel-machines" class="tab-panel w-full max-w-3xl bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-2xl pointer-events-auto hidden flex flex-col max-h-full">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                <h2 class="text-xl font-bold flex items-center space-x-2 text-cyan-400"><i class="fa-solid fa-gears"></i> <span>Machine Fleet & Acquisition</span></h2>
+                <button onclick="closeModals()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex space-x-2 mb-4 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                <button onclick="switchMachineSubTab('fleet')" id="msub-fleet-btn" class="flex-1 py-2 rounded-lg text-xs font-bold bg-cyan-600 text-white transition-all">Active Fleet (<span id="count-active-machines">2</span>)</button>
+                <button onclick="switchMachineSubTab('buy')" id="msub-buy-btn" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all">Catalog & Purchase</button>
+            </div>
+            <div id="msub-fleet-view" class="overflow-y-auto space-y-3 pr-1"></div>
+            <div id="msub-buy-view" class="overflow-y-auto space-y-3 pr-1 hidden"></div>
+        </div>
+
+        <!-- STAFF PANEL -->
+        <div id="panel-staff" class="tab-panel w-full max-w-2xl bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-2xl pointer-events-auto hidden flex flex-col max-h-full">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                <h2 class="text-xl font-bold flex items-center space-x-2 text-cyan-400"><i class="fa-solid fa-users-gear"></i> <span>Workforce Management</span></h2>
+                <button onclick="closeModals()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="overflow-y-auto space-y-3 pr-1" id="staff-list"></div>
+        </div>
+
+        <!-- UPGRADES / EXPANSION PANEL -->
+        <div id="panel-upgrades" class="tab-panel w-full max-w-2xl bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-2xl pointer-events-auto hidden flex flex-col max-h-full">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                <h2 class="text-xl font-bold flex items-center space-x-2 text-cyan-400"><i class="fa-solid fa-arrow-up-right-dots"></i> <span>Plant Expansion & R&D</span></h2>
+                <button onclick="closeModals()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="overflow-y-auto space-y-4 pr-1">
+                <div class="bg-gradient-to-r from-cyan-950/60 to-blue-950/60 border border-cyan-500/30 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs uppercase tracking-wider text-cyan-400 font-bold">Current Tier</span>
+                        <h3 id="expansion-tier-title" class="text-lg font-extrabold text-white">Small Workshop (Level 1)</h3>
+                        <p id="expansion-tier-desc" class="text-xs text-slate-300 mt-1">Expand to Medium Manufacturing Unit to unlock extra floor slots and advanced machinery.</p>
+                    </div>
+                    <button onclick="upgradeFactory()" id="btn-upgrade-factory" class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/30 text-sm whitespace-nowrap">Upgrade (₹150,000)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS / CONFIG PANEL -->
+        <div id="panel-settings" class="tab-panel w-full max-w-md bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 shadow-2xl pointer-events-auto hidden flex flex-col max-h-full">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                <h2 class="text-xl font-bold flex items-center space-x-2 text-cyan-400"><i class="fa-solid fa-gear"></i> <span>Game Settings</span></h2>
+                <button onclick="closeModals()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-sm text-slate-200">Manual Save</h4>
+                        <p class="text-xs text-slate-400">Save your game progress to browser storage.</p>
+                    </div>
+                    <button onclick="saveGameManual()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl font-bold text-xs border border-slate-700">Save</button>
+                </div>
+                <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-sm text-rose-400">Reset Factory</h4>
+                        <p class="text-xs text-slate-400">Wipe all progress and start a new game.</p>
+                    </div>
+                    <button onclick="resetGameConfirm()" class="px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 rounded-xl font-bold text-xs border border-rose-500/30">Reset</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div id="onboarding-modal" class="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-lg flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center mx-auto mb-4 text-white text-3xl shadow-xl shadow-cyan-500/30">
+                <i class="fa-solid fa-industry"></i>
+            </div>
+            <h2 class="text-2xl font-extrabold text-white mb-2">Welcome to Aethercore Mechanics!</h2>
+            <p class="text-sm text-slate-300 mb-6 leading-relaxed">
+                You are the owner of a mechanical manufacturing workshop. Start by buying raw materials, assigning workers to your machines, and fulfilling lucrative customer orders to expand your industrial empire!
+            </p>
+            <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 mb-6 text-left space-y-2 text-xs text-slate-300">
+                <div class="flex items-center space-x-2"><i class="fa-solid fa-check text-cyan-400"></i><span>Starting capital: <strong>₹100,000</strong></span></div>
+                <div class="flex items-center space-x-2"><i class="fa-solid fa-check text-cyan-400"></i><span>2 Operational Machines & 2 Workers</span></div>
+                <div class="flex items-center space-x-2"><i class="fa-solid fa-check text-cyan-400"></i><span>Manage production, maintenance, and orders daily</span></div>
+            </div>
+            <button onclick="closeOnboarding()" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/30 transition-all">Start Manufacturing</button>
+        </div>
+    </div>
+
+    <!-- Custom Modal Replacement for alerts -->
+    <div id="custom-alert-modal" class="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+            <div id="alert-icon" class="text-4xl text-cyan-400 mb-3"><i class="fa-solid fa-circle-info"></i></div>
+            <h3 id="alert-title" class="text-lg font-bold text-white mb-1">Notice</h3>
+            <p id="alert-message" class="text-xs text-slate-300 mb-5">Message goes here.</p>
+            <button onclick="closeCustomAlert()" class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-cyan-600/30">OK</button>
+        </div>
+    </div>
+
+    <!-- Main Game Script -->
+    <script src="game.js"></script>
+</body>
+</html>
