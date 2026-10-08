@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Liberty City 3D - Open World Action</title>
+    <title>Liberty City 3D - GTA III Edition</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Three.js & OrbitControls CDN -->
+    <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <style>
         * {
@@ -28,7 +27,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #0b0f19;
+            background-color: #050811;
             color: #f8fafc;
         }
         #canvas-container {
@@ -40,15 +39,11 @@
             z-index: 1;
         }
         .hud-panel {
-            background: rgba(15, 23, 42, 0.82);
+            background: rgba(15, 23, 42, 0.88);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
@@ -57,6 +52,15 @@
         .mission-toast {
             animation: fadeIn 0.3s ease forwards;
         }
+        .virtual-btn {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.1s ease;
+        }
+        .virtual-btn:active {
+            background: rgba(37, 99, 235, 0.9);
+            transform: scale(0.92);
+        }
     </style>
 </head>
 <body class="w-screen h-screen overflow-hidden relative">
@@ -64,61 +68,71 @@
     <!-- 3D Canvas Container -->
     <div id="canvas-container"></div>
 
-    <!-- HUD Overlay -->
+    <!-- HUD Overlay UI -->
     <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 md:p-6">
 
-        <!-- Top Header: Cash, Wanted Level, Radar Mini-Info -->
-        <header class="w-full flex items-center justify-between pointer-events-auto">
+        <!-- Top Header Bar -->
+        <header class="w-full flex items-center justify-between pointer-events-auto gap-4">
             <!-- Wanted Stars -->
-            <div id="wanted-stars" class="hud-panel px-4 py-2 rounded-2xl flex items-center space-x-1.5 shadow-2xl border border-amber-500/40">
+            <div class="hud-panel px-4 py-2.5 rounded-2xl flex items-center space-x-1.5 shadow-2xl border border-amber-500/40">
                 <span class="text-xs font-bold text-slate-300 mr-2 uppercase tracking-wider">Wanted</span>
-                <i class="fa-solid fa-star text-amber-500 text-sm"></i>
-                <i class="fa-solid fa-star text-slate-600 text-sm"></i>
-                <i class="fa-solid fa-star text-slate-600 text-sm"></i>
+                <i id="star-1" class="fa-solid fa-star text-amber-500 text-sm"></i>
+                <i id="star-2" class="fa-solid fa-star text-slate-600 text-sm"></i>
+                <i id="star-3" class="fa-solid fa-star text-slate-600 text-sm"></i>
             </div>
 
-            <!-- Cash & Health -->
-            <div class="flex items-center space-x-4">
-                <div class="hud-panel px-5 py-2 rounded-2xl flex items-center space-x-2 shadow-2xl border border-emerald-500/30">
+            <!-- Cash, Health, Armor -->
+            <div class="flex items-center space-x-3">
+                <div class="hud-panel px-4 py-2 rounded-2xl flex items-center space-x-2 shadow-2xl border border-emerald-500/30">
                     <span class="text-emerald-400 font-bold">$</span>
-                    <span id="stat-money" class="font-extrabold text-lg text-emerald-300">25,000</span>
+                    <span id="stat-money" class="font-extrabold text-base md:text-lg text-emerald-300">5,000</span>
                 </div>
-                <div class="hud-panel px-5 py-2 rounded-2xl flex items-center space-x-2 shadow-2xl border border-red-500/30">
-                    <i class="fa-solid fa-heart text-red-500"></i>
-                    <span id="stat-health" class="font-extrabold text-lg text-red-300">100</span>
+                <div class="hud-panel px-4 py-2 rounded-2xl flex items-center space-x-2 shadow-2xl border border-blue-500/30">
+                    <i class="fa-solid fa-shield-halved text-blue-400 text-sm"></i>
+                    <span id="stat-armor" class="font-extrabold text-base md:text-lg text-blue-300">100</span>
+                </div>
+                <div class="hud-panel px-4 py-2 rounded-2xl flex items-center space-x-2 shadow-2xl border border-red-500/30">
+                    <i class="fa-solid fa-heart text-red-500 text-sm"></i>
+                    <span id="stat-health" class="font-extrabold text-base md:text-lg text-red-300">100</span>
                 </div>
             </div>
         </header>
 
-        <!-- Center Notification Toast -->
+        <!-- Mission / Toast Container -->
         <div id="toast-container" class="absolute top-24 left-1/2 -translate-x-1/2 z-30 flex flex-col space-y-2 pointer-events-none max-w-sm w-full text-center"></div>
 
-        <!-- Controls Guide / Action Prompt -->
-        <div class="absolute bottom-28 left-1/2 -translate-x-1/2 hud-panel px-6 py-2.5 rounded-2xl pointer-events-auto shadow-2xl border border-blue-500/40 text-center">
-            <span id="action-prompt" class="text-xs md:text-sm font-bold text-blue-200">Use <b class="text-white">WASD / Arrow Keys</b> to Move & Drive | Press <b class="text-white">F</b> to Enter/Exit Vehicle</span>
+        <!-- Center Controls Hint -->
+        <div class="absolute top-24 left-4 hud-panel px-4 py-2 rounded-xl pointer-events-auto hidden md:block border border-slate-700">
+            <div class="text-[11px] font-bold text-slate-300 space-y-1">
+                <div><b class="text-blue-400">WASD / ARROWS</b> : Move / Drive</div>
+                <div><b class="text-blue-400">F / ENTER</b> : Enter / Exit Vehicle</div>
+                <div><b class="text-blue-400">SPACEBAR</b> : Handbrake / Jump</div>
+            </div>
         </div>
 
-        <!-- Bottom Controls Bar (Virtual D-Pad & Actions for Mobile/PC) -->
-        <footer class="w-full flex items-center justify-between pointer-events-auto">
-            <div class="flex items-center space-x-2 hud-panel p-3 rounded-2xl">
-                <div class="grid grid-cols-3 gap-1 w-32 h-24">
+        <!-- Bottom Actions & Mobile D-Pad -->
+        <footer class="w-full flex items-end justify-between pointer-events-auto">
+            <!-- D-Pad for Movement -->
+            <div class="hud-panel p-3 rounded-2xl shadow-2xl">
+                <div class="grid grid-cols-3 gap-1.5 w-36 h-28">
                     <div></div>
-                    <button onclick="Game.movePlayer('UP')" class="bg-slate-800 hover:bg-slate-700 rounded-xl text-white font-bold flex items-center justify-center active:bg-blue-600"><i class="fa-solid fa-chevron-up"></i></button>
+                    <button id="btn-up" class="virtual-btn rounded-xl text-white font-bold flex items-center justify-center text-lg"><i class="fa-solid fa-chevron-up"></i></button>
                     <div></div>
-                    <button onclick="Game.movePlayer('LEFT')" class="bg-slate-800 hover:bg-slate-700 rounded-xl text-white font-bold flex items-center justify-center active:bg-blue-600"><i class="fa-solid fa-chevron-left"></i></button>
-                    <button onclick="Game.movePlayer('DOWN')" class="bg-slate-800 hover:bg-slate-700 rounded-xl text-white font-bold flex items-center justify-center active:bg-blue-600"><i class="fa-solid fa-chevron-down"></i></button>
-                    <button onclick="Game.movePlayer('RIGHT')" class="bg-slate-800 hover:bg-slate-700 rounded-xl text-white font-bold flex items-center justify-center active:bg-blue-600"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button id="btn-left" class="virtual-btn rounded-xl text-white font-bold flex items-center justify-center text-lg"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button id="btn-down" class="virtual-btn rounded-xl text-white font-bold flex items-center justify-center text-lg"><i class="fa-solid fa-chevron-down"></i></button>
+                    <button id="btn-right" class="virtual-btn rounded-xl text-white font-bold flex items-center justify-center text-lg"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
             </div>
 
-            <div class="flex items-center space-x-3 hud-panel p-3 rounded-2xl">
-                <button onclick="Game.toggleVehicle()" class="px-5 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-500/30 flex items-center space-x-2">
+            <!-- Action Buttons: Enter Car, Attack, Jump -->
+            <div class="flex items-center space-x-3 hud-panel p-3 rounded-2xl shadow-2xl">
+                <button id="btn-vehicle" class="px-5 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-500/30 flex items-center space-x-2">
                     <i class="fa-solid fa-car text-base"></i>
                     <span id="veh-btn-text">ENTER CAR (F)</span>
                 </button>
-                <button onclick="Game.playerPunch()" class="px-5 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs shadow-lg shadow-red-500/30 flex items-center space-x-2">
+                <button id="btn-action" class="px-5 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs shadow-lg shadow-red-500/30 flex items-center space-x-2">
                     <i class="fa-solid fa-hand-fist text-base"></i>
-                    <span>ACTION</span>
+                    <span>PUNCH</span>
                 </button>
             </div>
         </footer>
@@ -126,78 +140,83 @@
     </div>
 
     <!-- Intro Welcome Modal -->
-    <div id="intro-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div id="intro-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
         <div class="hud-panel w-full max-w-lg rounded-3xl p-8 modal-animation border border-blue-500/40 text-center space-y-6">
             <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center mx-auto shadow-2xl shadow-blue-500/50 text-2xl text-white">
                 <i class="fa-solid fa-city"></i>
             </div>
             <div>
                 <h2 class="text-2xl font-extrabold text-slate-100 mb-2">Liberty City 3D</h2>
-                <p class="text-sm text-slate-300 leading-relaxed">Welcome to the underworld. Explore the 3D open-world city, steal sports cars, avoid the police, and complete underground missions!</p>
+                <p class="text-sm text-slate-300 leading-relaxed">Fully playable open-world sandbox. Walk the streets, steal vehicles, drive around Liberty City, and evade the police!</p>
             </div>
-            <button onclick="Game.closeIntro()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-extrabold text-white text-sm shadow-xl shadow-blue-600/40 transition-all transform active:scale-95">
-                ENTER CITY <i class="fa-solid fa-arrow-right ml-2"></i>
+            <button onclick="Game.startGame()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-extrabold text-white text-sm shadow-xl shadow-blue-600/40 transition-all transform active:scale-95">
+                START GAME <i class="fa-solid fa-arrow-right ml-2"></i>
             </button>
         </div>
     </div>
 
-    <!-- Application Script -->
+    <!-- Game Engine Script -->
     <script>
         /**
-         * Liberty City 3D - Open World Action Engine (GTA 3 Style)
+         * Liberty City 3D - GTA III Web Engine
          */
 
         const Game = {
-            money: 25000,
+            money: 5000,
             health: 100,
+            armor: 100,
+            wanted: 0,
             inVehicle: false,
-            keys: {},
+            keys: { up: false, down: false, left: false, right: false, action: false },
 
-            init() {
-                World3D.init();
-                this.setupKeyboard();
-                this.updateHUD();
-            },
-
-            closeIntro() {
+            startGame() {
                 document.getElementById('intro-modal').classList.add('hidden');
+                World3D.init();
+                this.setupControls();
+                this.showToast("Welcome to Liberty City, Claude.", "success");
             },
 
-            toggleVehicle() {
-                this.inVehicle = !this.inVehicle;
-                const btnText = document.getElementById('veh-btn-text');
-                if (this.inVehicle) {
-                    btnText.innerText = "EXIT CAR (F)";
-                    this.showToast("Entered Sports Cruiser!", "success");
-                } else {
-                    btnText.innerText = "ENTER CAR (F)";
-                    this.showToast("Exited vehicle.", "info");
-                }
-            },
-
-            playerPunch() {
-                this.showToast("Punch / Attack executed!", "info");
-            },
-
-            movePlayer(dir) {
-                World3D.moveCharacter(dir);
-            },
-
-            setupKeyboard() {
+            setupControls() {
                 window.addEventListener('keydown', (e) => {
-                    this.keys[e.key.toLowerCase()] = true;
-                    if (e.key.toLowerCase() === 'f') {
-                        this.toggleVehicle();
-                    }
+                    const k = e.key.toLowerCase();
+                    if (k === 'w' || k === 'arrowup') this.keys.up = true;
+                    if (k === 's' || k === 'arrowdown') this.keys.down = true;
+                    if (k === 'a' || k === 'arrowleft') this.keys.left = true;
+                    if (k === 'd' || k === 'arrowright') this.keys.right = true;
+                    if (k === 'f' || k === 'enter') World3D.toggleVehicle();
                 });
+
                 window.addEventListener('keyup', (e) => {
-                    this.keys[e.key.toLowerCase()] = false;
+                    const k = e.key.toLowerCase();
+                    if (k === 'w' || k === 'arrowup') this.keys.up = false;
+                    if (k === 's' || k === 'arrowdown') this.keys.down = false;
+                    if (k === 'a' || k === 'arrowleft') this.keys.left = false;
+                    if (k === 'd' || k === 'arrowright') this.keys.right = false;
                 });
+
+                // Virtual D-Pad bindings
+                const bindButton = (id, keyName) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.addEventListener('mousedown', () => this.keys[keyName] = true);
+                    el.addEventListener('mouseup', () => this.keys[keyName] = false);
+                    el.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys[keyName] = true; });
+                    el.addEventListener('touchend', (e) => { e.preventDefault(); this.keys[keyName] = false; });
+                };
+
+                bindButton('btn-up', 'up');
+                bindButton('btn-down', 'down');
+                bindButton('btn-left', 'left');
+                bindButton('btn-right', 'right');
+
+                document.getElementById('btn-vehicle').addEventListener('click', () => World3D.toggleVehicle());
+                document.getElementById('btn-action').addEventListener('click', () => this.actionPunch());
             },
 
-            updateHUD() {
+            actionPunch() {
+                this.showToast("Punch executed!", "info");
+                this.money += 100;
                 document.getElementById('stat-money').innerText = this.money.toLocaleString('en-IN');
-                document.getElementById('stat-health').innerText = this.health;
             },
 
             showToast(text, type = 'info') {
@@ -214,46 +233,44 @@
             }
         };
 
-        // --- 3D OPEN WORLD RENDERER (Three.js) ---
+        // --- THREE.JS 3D WORLD & VEHICLE ENGINE ---
         const World3D = {
             scene: null,
             camera: null,
             renderer: null,
-            controls: null,
-            playerMesh: null,
-            carMesh: null,
-            playerPos: { x: 0, z: 0 },
-            carPos: { x: 5, z: 5 },
+            player: null,
+            car: null,
+            pedestrians: [],
+            playerPos: { x: 0, z: 0, angle: 0 },
+            carPos: { x: 6, z: 6, angle: 0, speed: 0 },
 
             init() {
                 const container = document.getElementById('canvas-container');
 
                 this.scene = new THREE.Scene();
-                this.scene.background = new THREE.Color(0x0b0f19);
-                this.scene.fog = new THREE.FogExp2(0x0b0f19, 0.015);
+                this.scene.background = new THREE.Color(0x090d16);
+                this.scene.fog = new THREE.FogExp2(0x090d16, 0.012);
 
                 const aspect = window.innerWidth / window.innerHeight;
                 this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
-                this.camera.position.set(0, 15, 20);
 
                 this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
                 this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                 this.renderer.shadowMap.enabled = true;
-                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 container.appendChild(this.renderer.domElement);
 
                 // Lighting
-                const ambientLight = new THREE.AmbientLight(0x94a3b8, 0.8);
-                this.scene.add(ambientLight);
+                const ambient = new THREE.AmbientLight(0x818cf8, 0.9);
+                this.scene.add(ambient);
 
-                const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.4);
-                dirLight.position.set(20, 40, 20);
-                dirLight.castShadow = true;
-                this.scene.add(dirLight);
+                const sun = new THREE.DirectionalLight(0xfffbeb, 1.5);
+                sun.position.set(30, 50, 30);
+                sun.castShadow = true;
+                this.scene.add(sun);
 
-                this.buildCity();
-                this.buildPlayerAndCar();
+                this.buildCityMap();
+                this.buildEntities();
 
                 let lastTime = performance.now();
                 const loop = (currentTime) => {
@@ -265,82 +282,129 @@
                 requestAnimationFrame(loop);
             },
 
-            buildCity() {
+            buildCityMap() {
                 // Asphalt Street Grid
-                const groundGeo = new THREE.PlaneGeometry(120, 120);
+                const groundGeo = new THREE.PlaneGeometry(160, 160);
                 const groundMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
                 const ground = new THREE.Mesh(groundGeo, groundMat);
                 ground.rotation.x = -Math.PI / 2;
                 ground.receiveShadow = true;
                 this.scene.add(ground);
 
-                // Procedural City Skyscrapers
-                const buildingMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4, metalness: 0.6 });
-                const positions = [
-                    {-15, -15}, {15, -15}, {-15, 15}, {15, 15},
-                    {-30, -30}, {30, -30}, {-30, 30}, {30, 30},
-                    {0, -35}, {0, 35}, {-35, 0}, {35, 0}
+                // City Skyscrapers (Portland / Staunton Island style blocks)
+                const buildingMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3, metalness: 0.5 });
+                const coords = [
+                    {-20, -20}, {20, -20}, {-20, 20}, {20, 20},
+                    {-40, -40}, {40, -40}, {-40, 40}, {40, 40},
+                    {0, -45}, {0, 45}, {-45, 0}, {45, 0},
+                    {-20, -45}, {20, -45}, {-45, -20}, {45, -20}
                 ];
 
-                positions.forEach((pos, i) => {
-                    const h = Math.random() * 15 + 10;
-                    const bGeo = new THREE.BoxGeometry(8, h, 8);
-                    const bMesh = new THREE.Mesh(bGeo, buildingMat);
-                    bMesh.position.set(pos.x, h / 2, pos.y);
-                    bMesh.castShadow = true; bMesh.receiveShadow = true;
-                    this.scene.add(bMesh);
+                coords.forEach(c => {
+                    const h = Math.random() * 18 + 12;
+                    const b = new THREE.Mesh(new THREE.BoxGeometry(10, h, 10), buildingMat);
+                    b.position.set(c.x, h / 2, c.y);
+                    b.castShadow = true; b.receiveShadow = true;
+                    this.scene.add(b);
                 });
             },
 
-            buildPlayerAndCar() {
-                // Player Avatar (GTA 3 Claude Style)
+            buildEntities() {
+                // Player Avatar (Claude)
                 const pMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.5 });
-                this.playerMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.6, 12), pMat);
-                this.playerMesh.position.set(0, 0.8, 0);
-                this.playerMesh.castShadow = true;
-                this.scene.add(this.playerMesh);
+                this.player = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.6, 12), pMat);
+                this.player.position.set(0, 0.8, 0);
+                this.player.castShadow = true;
+                this.scene.add(this.player);
 
-                // Sports Car
-                const carMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.2, metalness: 0.9 });
-                this.carMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 4), carMat);
-                this.carMesh.position.set(5, 0.5, 5);
-                this.carMesh.castShadow = true;
-                this.scene.add(this.carMesh);
+                // Sports Car (Infernus style)
+                const cMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.2, metalness: 0.9 });
+                this.car = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.1, 4.4), cMat);
+                this.car.position.set(6, 0.55, 6);
+                this.car.castShadow = true;
+                this.scene.add(this.car);
             },
 
-            movePlayer(dir) {
-                const speed = 1.5;
-                if (dir === 'UP') this.playerPos.z -= speed;
-                if (dir === 'DOWN') this.playerPos.z += speed;
-                if (dir === 'LEFT') this.playerPos.x -= speed;
-                if (dir === 'RIGHT') this.playerPos.x += speed;
+            toggleVehicle() {
+                const dist = Math.hypot(this.playerPos.x - this.carPos.x, this.playerPos.z - this.carPos.z);
+                if (!Game.inVehicle && dist > 6) {
+                    Game.showToast("No vehicle nearby!", "info");
+                    return;
+                }
+
+                Game.inVehicle = !Game.inVehicle;
+                const btnText = document.getElementById('veh-btn-text');
+                if (Game.inVehicle) {
+                    btnText.innerText = "EXIT CAR (F)";
+                    this.player.visible = false;
+                    Game.showToast("Entered Vehicle", "success");
+                } else {
+                    btnText.innerText = "ENTER CAR (F)";
+                    this.player.visible = true;
+                    this.playerPos.x = this.carPos.x + 2;
+                    this.playerPos.z = this.carPos.z;
+                    Game.showToast("Exited Vehicle", "info");
+                }
             },
 
             update(dt) {
-                const speed = 4 * dt;
-                if (Game.keys['w'] || Game.keys['arrowup']) this.playerPos.z -= speed;
-                if (Game.keys['s'] || Game.keys['arrowdown']) this.playerPos.z += speed;
-                if (Game.keys['a'] || Game.keys['arrowleft']) this.playerPos.x -= speed;
-                if (Game.keys['d'] || Game.keys['arrowright']) this.playerPos.x += speed;
+                const moveSpeed = 8 * dt;
+                const turnSpeed = 3 * dt;
 
-                if (this.playerMesh) {
-                    this.playerMesh.position.x = this.playerPos.x;
-                    this.playerMesh.position.z = this.playerPos.z;
-
-                    if (Game.inVehicle && this.carMesh) {
-                        this.carMesh.position.x = this.playerPos.x + 1;
-                        this.carMesh.position.z = this.playerPos.z;
-                        this.camera.position.set(this.carMesh.position.x, this.carMesh.position.y + 8, this.carMesh.position.z + 12);
-                        this.camera.lookAt(this.carMesh.position);
-                    } else {
-                        this.camera.position.set(this.playerMesh.position.x, this.playerMesh.position.y + 6, this.playerMesh.position.z + 10);
-                        this.camera.lookAt(this.playerMesh.position);
+                if (!Game.inVehicle) {
+                    // Player Movement
+                    if (Game.keys.up) {
+                        this.playerPos.x -= Math.sin(this.playerPos.angle) * moveSpeed;
+                        this.playerPos.z -= Math.cos(this.playerPos.angle) * moveSpeed;
                     }
+                    if (Game.keys.down) {
+                        this.playerPos.x += Math.sin(this.playerPos.angle) * moveSpeed;
+                        this.playerPos.z += Math.cos(this.playerPos.angle) * moveSpeed;
+                    }
+                    if (Game.keys.left) this.playerPos.angle += turnSpeed;
+                    if (Game.keys.right) this.playerPos.angle -= turnSpeed;
+
+                    this.player.position.x = this.playerPos.x;
+                    this.player.position.z = this.playerPos.z;
+                    this.player.rotation.y = this.playerPos.angle;
+
+                    // Camera Follow Player
+                    this.camera.position.set(
+                        this.playerPos.x + Math.sin(this.playerPos.angle) * 8,
+                        this.player.position.y + 5,
+                        this.playerPos.z + Math.cos(this.playerPos.angle) * 8
+                    );
+                    this.camera.lookAt(this.player.position);
+
+                } else {
+                    // Car Driving Physics
+                    if (Game.keys.up) this.carPos.speed = Math.min(this.carPos.speed + 12 * dt, 18);
+                    else if (Game.keys.down) this.carPos.speed = Math.max(this.carPos.speed - 12 * dt, -8);
+                    else this.carPos.speed *= 0.95;
+
+                    if (Game.keys.left) this.carPos.angle += turnSpeed * (this.carPos.speed / 10);
+                    if (Game.keys.right) this.carPos.angle -= turnSpeed * (this.carPos.speed / 10);
+
+                    this.carPos.x -= Math.sin(this.carPos.angle) * this.carPos.speed * dt;
+                    this.carPos.z -= Math.cos(this.carPos.angle) * this.carPos.speed * dt;
+
+                    this.car.position.set(this.carPos.x, 0.55, this.carPos.z);
+                    this.car.rotation.y = this.carPos.angle;
+
+                    // Sync player pos with car
+                    this.playerPos.x = this.carPos.x;
+                    this.playerPos.z = this.carPos.z;
+
+                    // Camera Follow Car
+                    this.camera.position.set(
+                        this.carPos.x + Math.sin(this.carPos.angle) * 12,
+                        this.car.position.y + 6,
+                        this.carPos.z + Math.cos(this.carPos.angle) * 12
+                    );
+                    this.camera.lookAt(this.car.position);
                 }
 
-                if (this.renderer && this.scene && this.camera) {
-                    this.renderer.render(this.scene, this.camera);
-                }
+                this.renderer.render(this.scene, this.camera);
             },
 
             onWindowResize() {
@@ -351,8 +415,8 @@
             }
         };
 
-        window.addEventListener('DOMContentLoaded', () => { Game.init(); });
-        window.addEventListener('resize', () => { World3D.onWindowResize(); });
+        window.addEventListener('DOMContentLoaded', () => {});
+        window.addEventListener('resize', () => World3D.onWindowResize());
     </script>
 </body>
 </html>
