@@ -637,7 +637,7 @@
             }
         };
 
-        // --- THREE.JS 3D RENDERER & SCENE WITH GLTF LOADER & ADMIN CUSTOM ASSETS ---
+        // --- THREE.JS 3D RENDERER & OPEN SOURCE GLTF ASSETS ---
         const Renderer3D = {
             scene: null,
             camera: null,
@@ -646,6 +646,14 @@
             machineMeshes: [],
             workerMeshes: [],
             loader: new THREE.GLTFLoader(),
+
+            // Open-source standard public domain / Khronos sample GLB URLs
+            openSourceURLs: {
+                factory: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb",
+                lathe: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/RigidBodyWithCone/glTF-Binary/RigidBodyWithCone.glb",
+                cnc: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/GearboxAssy/glTF-Binary/GearboxAssy.glb",
+                worker: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb"
+            },
 
             init() {
                 const container = document.getElementById('canvas-container');
@@ -701,28 +709,24 @@
             getCustomAsset(key) {
                 try {
                     const custom = JSON.parse(localStorage.getItem('aethercore_custom_assets') || '{}');
-                    return custom[key] || '';
+                    return custom[key] || this.openSourceURLs[key] || '';
                 } catch(e) {
-                    return '';
+                    return this.openSourceURLs[key] || '';
                 }
             },
 
             buildEnvironment() {
-                const customFactoryUrl = this.getCustomAsset('factory');
-                if (customFactoryUrl) {
-                    this.loader.load(customFactoryUrl, (gltf) => {
-                        const model = gltf.scene;
-                        model.scale.set(1.5, 1.5, 1.5);
-                        model.position.set(0, 0, 0);
-                        model.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
-                        this.scene.add(model);
-                    }, undefined, (err) => {
-                        console.warn("Custom factory model failed to load, falling back to procedural design:", err);
-                        this.buildProceduralEnvironment();
-                    });
-                } else {
+                const factoryUrl = this.getCustomAsset('factory');
+                this.loader.load(factoryUrl, (gltf) => {
+                    const model = gltf.scene;
+                    model.scale.set(3, 1, 3);
+                    model.position.set(0, -0.5, 0);
+                    model.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
+                    this.scene.add(model);
+                }, undefined, () => {
                     this.buildProceduralEnvironment();
-                }
+                });
+                this.buildProceduralEnvironment();
             },
 
             buildProceduralEnvironment() {
@@ -737,7 +741,6 @@
                 grid.position.y = 0.02;
                 this.scene.add(grid);
 
-                // Industrial pillars & perimeter walls for professional realism
                 const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a2642, roughness: 0.9, metalness: 0.2 });
                 [-14, 14].forEach(x => {
                     const wallGeo = new THREE.BoxGeometry(0.5, 5, 28);
@@ -754,7 +757,6 @@
                     this.scene.add(wall);
                 });
 
-                // Warehouse Storage Racks (Steel & Aluminum Storage)
                 const rackGeo = new THREE.BoxGeometry(3.5, 3, 1.5);
                 const rackMat = new THREE.MeshStandardMaterial({ color: 0x27354f, metalness: 0.7, roughness: 0.3 });
                 
@@ -770,7 +772,6 @@
                 finishedStorage.receiveShadow = true;
                 this.scene.add(finishedStorage);
 
-                // Office Glass Cabin
                 const officeGeo = new THREE.BoxGeometry(6, 3.5, 4.5);
                 const officeMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.2, metalness: 0.8, transparent: true, opacity: 0.65 });
                 const office = new THREE.Mesh(officeGeo, officeMat);
@@ -786,49 +787,41 @@
                 this.workerMeshes.forEach(w => this.scene.remove(w.group));
                 this.workerMeshes = [];
 
-                const customLatheUrl = this.getCustomAsset('lathe');
-                const customCncUrl = this.getCustomAsset('cnc');
-                const customWorkerUrl = this.getCustomAsset('worker');
+                const latheUrl = this.getCustomAsset('lathe');
+                const cncUrl = this.getCustomAsset('cnc');
+                const workerUrl = this.getCustomAsset('worker');
 
-                // Build Machines
                 Game.machines.forEach((machData) => {
                     const group = new THREE.Group();
-                    let assetUrl = (machData.type === 'cnc_lathe' || machData.type === 'vmc') ? customCncUrl : customLatheUrl;
+                    let assetUrl = (machData.type === 'cnc_lathe' || machData.type === 'vmc') ? cncUrl : latheUrl;
 
-                    if (assetUrl) {
-                        this.loader.load(assetUrl, (gltf) => {
-                            const model = gltf.scene;
-                            model.scale.set(1.2, 1.2, 1.2);
-                            model.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
-                            group.add(model);
-                        }, undefined, () => {
-                            this.buildProceduralMachine(group, machData.type);
-                        });
-                    } else {
+                    this.loader.load(assetUrl, (gltf) => {
+                        const model = gltf.scene;
+                        model.scale.set(0.8, 0.8, 0.8);
+                        model.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
+                        group.add(model);
+                    }, undefined, () => {
                         this.buildProceduralMachine(group, machData.type);
-                    }
+                    });
+                    this.buildProceduralMachine(group, machData.type);
 
                     group.position.set(machData.x, 0, machData.z);
                     this.scene.add(group);
                     this.machineMeshes.push({ id: machData.id, group: group, data: machData });
                 });
 
-                // Build Workers
                 Game.workers.forEach((workerData, index) => {
                     const wGroup = new THREE.Group();
 
-                    if (customWorkerUrl) {
-                        this.loader.load(customWorkerUrl, (gltf) => {
-                            const model = gltf.scene;
-                            model.scale.set(1, 1, 1);
-                            model.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
-                            wGroup.add(model);
-                        }, undefined, () => {
-                            this.buildProceduralWorker(wGroup);
-                        });
-                    } else {
+                    this.loader.load(workerUrl, (gltf) => {
+                        const model = gltf.scene;
+                        model.scale.set(0.6, 0.6, 0.6);
+                        model.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
+                        wGroup.add(model);
+                    }, undefined, () => {
                         this.buildProceduralWorker(wGroup);
-                    }
+                    });
+                    this.buildProceduralWorker(wGroup);
 
                     const assignedMach = Game.machines.find(m => m.id === workerData.assignedMachine);
                     if (assignedMach) {
@@ -858,14 +851,12 @@
                 body.receiveShadow = true;
                 group.add(body);
 
-                // Industrial safety enclosure / transparent glass shield
                 const shieldGeo = new THREE.BoxGeometry(2.0, 1.2, 0.1);
                 const shieldMat = new THREE.MeshStandardMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.4, roughness: 0.1, metalness: 0.9 });
                 const shield = new THREE.Mesh(shieldGeo, shieldMat);
                 shield.position.set(0, 1.1, 1.05);
                 group.add(shield);
 
-                // Control panel
                 const panelGeo = new THREE.BoxGeometry(0.7, 0.7, 0.3);
                 const panelMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 });
                 const panel = new THREE.Mesh(panelGeo, panelMat);
@@ -875,7 +866,6 @@
             },
 
             buildProceduralWorker(wGroup) {
-                // Professional technician in industrial uniform with hardhat
                 const bodyGeo = new THREE.CylinderGeometry(0.28, 0.22, 1.1, 12);
                 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.5 });
                 const body = new THREE.Mesh(bodyGeo, bodyMat);
@@ -890,7 +880,6 @@
                 head.castShadow = true;
                 wGroup.add(head);
 
-                // Safety Hardhat
                 const hatGeo = new THREE.CylinderGeometry(0.26, 0.28, 0.12, 12);
                 const hatMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.3, metalness: 0.4 });
                 const hat = new THREE.Mesh(hatGeo, hatMat);
