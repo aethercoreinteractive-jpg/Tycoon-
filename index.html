@@ -2,17 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pepelo - Adventure Co-Op Game (Complete Edition)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pepelo - Mobile Co-Op Adventure</title>
     <style>
         * {
             box-sizing: border-box;
             user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
         body {
             margin: 0;
             padding: 0;
-            background: #111;
+            background: #0a0a0f;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
             color: #fff;
@@ -21,57 +23,105 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
+            height: 100dvh;
         }
         #game-container {
             position: relative;
-            width: 960px;
-            height: 540px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            border: 4px solid #333;
-            border-radius: 8px;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
             background: #222;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         canvas {
             display: block;
+            width: 100%;
+            height: 65vh;
             background: linear-gradient(to bottom, #1a2a6c, #b21f1f, #fdbb2d);
         }
-        #ui-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 20px;
-        }
-        .hud-row {
+        
+        /* Mobile Touch Controls Layout */
+        #touch-controls {
+            flex: 1;
+            background: #15151f;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 10px 20px;
+            border-top: 3px solid #2a2a3f;
+            touch-action: none;
+        }
+        .controller-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .control-cluster {
+            display: flex;
+            gap: 10px;
+        }
+        .t-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
             font-size: 20px;
             font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            active-transform: scale(0.92);
+        }
+        .t-btn:active, .t-btn.active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.92);
+        }
+        .jump-btn {
+            background: rgba(52, 152, 219, 0.4);
+            border-color: #3498db;
+            border-radius: 16px;
+            width: 64px;
+        }
+        .jump-btn.p2-jump {
+            background: rgba(233, 30, 99, 0.4);
+            border-color: #e91e63;
+        }
+        .player-tag {
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        /* HUD Overlay */
+        #ui-overlay {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 15px;
+            z-index: 5;
         }
         .badge {
             background: rgba(0,0,0,0.6);
-            padding: 8px 16px;
+            padding: 6px 14px;
             border-radius: 20px;
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-        #instructions {
-            position: absolute;
-            bottom: 10px;
-            width: 100%;
-            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
             font-size: 13px;
-            color: rgba(255,255,255,0.7);
-            text-shadow: 1px 1px 2px #000;
-            pointer-events: none;
+            font-weight: bold;
         }
+
         /* Screens */
         .screen {
             position: absolute;
@@ -79,50 +129,64 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(15, 15, 25, 0.95);
+            background: rgba(15, 15, 25, 0.96);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 10;
-            transition: opacity 0.3s ease;
+            padding: 20px;
+            text-align: center;
         }
         .screen h1 {
-            font-size: 48px;
+            font-size: 32px;
             margin-bottom: 10px;
             background: linear-gradient(45deg, #ff8008, #ffc837);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-transform: uppercase;
-            letter-spacing: 2px;
         }
         .screen p {
-            font-size: 18px;
+            font-size: 14px;
             color: #aaa;
-            margin-bottom: 30px;
-            max-width: 600px;
-            text-align: center;
-            line-height: 1.5;
+            margin-bottom: 25px;
+            max-width: 400px;
+            line-height: 1.4;
         }
         .btn {
             background: linear-gradient(135deg, #f857a6, #ff5858);
             border: none;
             color: white;
-            padding: 14px 36px;
-            font-size: 18px;
+            padding: 12px 32px;
+            font-size: 16px;
             font-weight: bold;
             border-radius: 30px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(255, 88, 88, 0.4);
-            transition: transform 0.2s, box-shadow 0.2s;
             text-transform: uppercase;
         }
-        .btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(255, 88, 88, 0.6);
+
+        /* Landscape warning for portrait holders */
+        #rotate-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #111;
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
         }
-        .btn:active {
-            transform: scale(0.98);
+        @media screen and (orientation: portrait) {
+            #rotate-warning {
+                display: flex;
+            }
         }
         .hidden {
             display: none !important;
@@ -131,38 +195,70 @@
 </head>
 <body>
 
+    <!-- Rotation Notice for Mobile Portrait -->
+    <div id="rotate-warning">
+        <h2>Please Rotate Your Phone</h2>
+        <p>Pepelo Mobile Co-Op is optimized for landscape mode for the best dual-controller layout experience.</p>
+    </div>
+
     <div id="game-container">
-        <canvas id="gameCanvas" width="960" height="540"></canvas>
+        <!-- Responsive Canvas (Internal Game Resolution 960x400) -->
+        <canvas id="gameCanvas" width="960" height="400"></canvas>
         
         <div id="ui-overlay">
-            <div class="hud-row">
-                <div class="badge" id="level-indicator">Level: 1 / 5</div>
-                <div class="badge" id="objective-indicator">Objective: Reach Doors Together!</div>
-            </div>
+            <div class="badge" id="level-indicator">Level: 1 / 5</div>
+            <div class="badge" id="restart-btn" onclick="resetCurrentLevel()" style="pointer-events: auto; background: rgba(231,76,60,0.6);">🔄 Reset</div>
         </div>
 
-        <div id="instructions">
-            <b>Blue Player (P1):</b> A/D to Move, W to Jump | <b>Pink Player (P2):</b> Arrow Keys to Move & Jump | <b>R:</b> Restart Level
+        <!-- Touch Controls Interface -->
+        <div id="touch-controls">
+            <!-- Player 1 Controls (Left Side) -->
+            <div class="controller-group">
+                <div>
+                    <div class="player-tag" style="color:#3498db;">P1 Blue</div>
+                    <div class="control-cluster">
+                        <div class="t-btn" id="p1-left">◀</div>
+                        <div class="t-btn" id="p1-right">▶</div>
+                    </div>
+                </div>
+                <div style="margin-top: 16px;">
+                    <div class="t-btn jump-btn" id="p1-jump">▲</div>
+                </div>
+            </div>
+
+            <!-- Player 2 Controls (Right Side) -->
+            <div class="controller-group">
+                <div style="margin-top: 16px;">
+                    <div class="t-btn jump-btn p2-jump" id="p2-jump">▲</div>
+                </div>
+                <div>
+                    <div class="player-tag" style="color:#e91e63;">P2 Pink</div>
+                    <div class="control-cluster">
+                        <div class="t-btn" id="p2-left">◀</div>
+                        <div class="t-btn" id="p2-right">▶</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Start Screen -->
         <div id="start-screen" class="screen">
-            <h1>Pepelo: Co-Op Adventure</h1>
-            <p>Team up with a friend or control both characters solo! Solve switches, dodge spikes, activate bridges, and guide both adventurers safely to the target doors.</p>
-            <button class="btn" onclick="startGame()">Start Game</button>
+            <h1>Pepelo Mobile</h1>
+            <p>Control both explorers simultaneously using the touch pads below. Coordinate switches, avoid spikes, and guide both to their matching doors!</p>
+            <button class="btn" onclick="startGame()">Tap to Start</button>
         </div>
 
         <!-- Level Complete Screen -->
         <div id="win-screen" class="screen hidden">
             <h1>Level Cleared!</h1>
-            <p>Fantastic teamwork! Both adventurers made it through safely.</p>
+            <p>Brilliant mobile teamwork! Ready for the next zone?</p>
             <button class="btn" onclick="nextLevel()">Next Level</button>
         </div>
 
         <!-- Game Over / Victory Screen -->
         <div id="gameover-screen" class="screen hidden">
             <h1 id="end-title">Victory!</h1>
-            <p id="end-desc">You have successfully beaten all levels of Pepelo Complete Edition!</p>
+            <p id="end-desc">You completed all stages of Pepelo Mobile Edition!</p>
             <button class="btn" onclick="restartGame()">Play Again</button>
         </div>
     </div>
@@ -171,38 +267,55 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Game States
-        let gameState = 'START'; // START, PLAYING, LEVEL_WIN, GAMEOVER
+        let gameState = 'START';
         let currentLevelIndex = 0;
 
-        // Input Tracking
-        const keys = {};
-        window.addEventListener('keydown', e => {
-            keys[e.code] = true;
-            if (e.code === 'KeyR') resetCurrentLevel();
-        });
-        window.addEventListener('keyup', e => {
-            keys[e.code] = false;
-        });
+        // Touch Input States
+        const inputState = {
+            p1Left: false, p1Right: false, p1Jump: false,
+            p2Left: false, p2Right: false, p2Jump: false
+        };
 
-        // Camera Object
-        const camera = { x: 0, y: 0, width: canvas.width, height: canvas.height };
+        // Setup Touch Event Listeners for Onscreen Buttons
+        function bindTouchButton(id, stateKey) {
+            const el = document.getElementById(id);
+            if (!el) return;
 
-        // Player Classes
+            const activate = (e) => { e.preventDefault(); inputState[stateKey] = true; el.classList.add('active'); };
+            const deactivate = (e) => { e.preventDefault(); inputState[stateKey] = false; el.classList.remove('active'); };
+
+            el.addEventListener('touchstart', activate, {passive: false});
+            el.addEventListener('touchend', deactivate, {passive: false});
+            el.addEventListener('touchcancel', deactivate, {passive: false});
+            
+            // Mouse fallbacks for desktop testing convenience
+            el.addEventListener('mousedown', activate);
+            el.addEventListener('mouseup', deactivate);
+            el.addEventListener('mouseleave', deactivate);
+        }
+
+        bindTouchButton('p1-left', 'p1Left');
+        bindTouchButton('p1-right', 'p1Right');
+        bindTouchButton('p1-jump', 'p1Jump');
+        bindTouchButton('p2-left', 'p2Left');
+        bindTouchButton('p2-right', 'p2Right');
+        bindTouchButton('p2-jump', 'p2Jump');
+
+        // Player Class
         class Player {
-            constructor(x, y, color, controls) {
+            constructor(x, y, color, isP1) {
                 this.x = x;
                 this.y = y;
-                this.width = 28;
-                this.height = 38;
+                this.width = 26;
+                this.height = 36;
                 this.vx = 0;
                 this.vy = 0;
-                this.speed = 3.5;
-                this.jumpPower = -10.5;
-                this.gravity = 0.45;
+                this.speed = 3.2;
+                this.jumpPower = -9.8;
+                this.gravity = 0.42;
                 this.grounded = false;
                 this.color = color;
-                this.controls = controls;
+                this.isP1 = isP1;
                 this.startX = x;
                 this.startY = y;
                 this.hasWon = false;
@@ -219,55 +332,46 @@
             update(platforms, hazards, switches, movingPlatforms) {
                 if (this.hasWon) return;
 
-                // Handle Input
-                if (keys[this.controls.left]) {
+                let movingLeft = this.isP1 ? inputState.p1Left : inputState.p2Left;
+                let movingRight = this.isP1 ? inputState.p1Right : inputState.p2Right;
+                let wantsJump = this.isP1 ? inputState.p1Jump : inputState.p2Jump;
+
+                if (movingLeft) {
                     this.vx = -this.speed;
-                } else if (keys[this.controls.right]) {
+                } else if (movingRight) {
                     this.vx = this.speed;
                 } else {
-                    this.vx *= 0.8; // Friction
+                    this.vx *= 0.75;
                 }
 
-                if (keys[this.controls.jump] && this.grounded) {
+                if (wantsJump && this.grounded) {
                     this.vy = this.jumpPower;
                     this.grounded = false;
                 }
 
-                // Apply Gravity
                 this.vy += this.gravity;
 
-                // Move X and check collisions
                 this.x += this.vx;
                 this.resolveCollisionsX(platforms);
                 this.resolveMovingPlatformCollisionsX(movingPlatforms);
 
-                // Move Y and check collisions
                 this.grounded = false;
                 this.y += this.vy;
                 this.resolveCollisionsY(platforms);
                 this.resolveMovingPlatformCollisionsY(movingPlatforms);
 
-                // Check Hazards (Spikes)
                 hazards.forEach(h => {
-                    if (boxIntersect(this, h)) {
-                        triggerDeath();
-                    }
+                    if (boxIntersect(this, h)) triggerDeath();
                 });
 
-                // Screen boundaries fallback
-                if (this.y > canvas.height + 200) {
-                    triggerDeath();
-                }
+                if (this.y > canvas.height + 150) triggerDeath();
             }
 
             resolveCollisionsX(platforms) {
                 platforms.forEach(p => {
                     if (boxIntersect(this, p)) {
-                        if (this.vx > 0) {
-                            this.x = p.x - this.width;
-                        } else if (this.vx < 0) {
-                            this.x = p.x + p.width;
-                        }
+                        if (this.vx > 0) this.x = p.x - this.width;
+                        else if (this.vx < 0) this.x = p.x + p.width;
                         this.vx = 0;
                     }
                 });
@@ -276,11 +380,11 @@
             resolveCollisionsY(platforms) {
                 platforms.forEach(p => {
                     if (boxIntersect(this, p)) {
-                        if (this.vy > 0) { // Falling
+                        if (this.vy > 0) {
                             this.y = p.y - this.height;
                             this.vy = 0;
                             this.grounded = true;
-                        } else if (this.vy < 0) { // Humping ceiling
+                        } else if (this.vy < 0) {
                             this.y = p.y + p.height;
                             this.vy = 0;
                         }
@@ -291,11 +395,8 @@
             resolveMovingPlatformCollisionsX(movingPlatforms) {
                 movingPlatforms.forEach(mp => {
                     if (boxIntersect(this, mp)) {
-                        if (this.vx > 0) {
-                            this.x = mp.x - this.width;
-                        } else if (this.vx < 0) {
-                            this.x = mp.x + mp.width;
-                        }
+                        if (this.vx > 0) this.x = mp.x - this.width;
+                        else if (this.vx < 0) this.x = mp.x + mp.width;
                         this.vx = 0;
                     }
                 });
@@ -308,7 +409,7 @@
                             this.y = mp.y - this.height;
                             this.vy = 0;
                             this.grounded = true;
-                            this.x += mp.dx; // Ride platform horizontal movement
+                            this.x += mp.dx;
                         } else if (this.vy < 0) {
                             this.y = mp.y + mp.height;
                             this.vy = 0;
@@ -319,200 +420,130 @@
 
             draw(ctx) {
                 ctx.save();
-                // Character Body (Pepelo Explorer Style)
                 ctx.fillStyle = this.color;
                 ctx.beginPath();
-                ctx.roundRect(this.x, this.y, this.width, this.height, 8);
+                ctx.roundRect(this.x, this.y, this.width, this.height, 6);
                 ctx.fill();
 
-                // Eyes / Visor
+                // Visor
                 ctx.fillStyle = '#fff';
-                ctx.fillRect(this.x + (this.vx >= 0 ? 14 : 4), this.y + 8, 10, 8);
+                ctx.fillRect(this.x + (this.vx >= 0 ? 13 : 3), this.y + 7, 9, 7);
                 ctx.fillStyle = '#111';
-                ctx.fillRect(this.x + (this.vx >= 0 ? 20 : 6), this.y + 10, 4, 4);
-
-                // Backpack / Detail
-                ctx.fillStyle = '#444';
-                ctx.fillRect(this.x + (this.vx >= 0 ? -4 : this.width), this.y + 12, 6, 16);
-
+                ctx.fillRect(this.x + (this.vx >= 0 ? 18 : 5), this.y + 9, 3, 3);
                 ctx.restore();
             }
         }
 
         class MovingPlatform {
             constructor(x, y, width, height, minX, maxX, speed) {
-                this.x = x;
-                this.y = y;
-                this.width = width;
-                this.height = height;
-                this.minX = minX;
-                this.maxX = maxX;
-                this.speed = speed;
-                this.dx = speed;
+                this.x = x; this.y = y; this.width = width; this.height = height;
+                this.minX = minX; this.maxX = maxX; this.speed = speed; this.dx = speed;
             }
             update() {
                 this.x += this.dx;
-                if (this.x <= this.minX || this.x + this.width >= this.maxX) {
-                    this.dx *= -1;
-                }
+                if (this.x <= this.minX || this.x + this.width >= this.maxX) this.dx *= -1;
             }
             draw(ctx) {
                 ctx.fillStyle = '#20b2aa';
                 ctx.fillRect(this.x, this.y, this.width, this.height);
-                ctx.fillStyle = '#008b8b';
-                ctx.fillRect(this.x, this.y + this.height - 4, this.width, 4);
             }
         }
 
         class Switch {
             constructor(x, y, targetId) {
-                this.x = x;
-                this.y = y;
-                this.width = 24;
-                this.height = 16;
-                this.targetId = targetId;
-                this.pressed = false;
+                this.x = x; this.y = y; this.width = 22; this.height = 14; this.targetId = targetId; this.pressed = false;
             }
             check(players) {
                 this.pressed = false;
-                players.forEach(p => {
-                    if (boxIntersect(p, this)) {
-                        this.pressed = true;
-                    }
-                });
+                players.forEach(p => { if (boxIntersect(p, this)) this.pressed = true; });
             }
             draw(ctx) {
                 ctx.fillStyle = this.pressed ? '#e74c3c' : '#f1c40f';
-                ctx.fillRect(this.x, this.y + (this.pressed ? 8 : 0), this.width, this.height - (this.pressed ? 8 : 0));
+                ctx.fillRect(this.x, this.y + (this.pressed ? 6 : 0), this.width, this.height - (this.pressed ? 6 : 0));
             }
         }
 
         class Door {
             constructor(x, y, color) {
-                this.x = x;
-                this.y = y;
-                this.width = 40;
-                this.height = 60;
-                this.color = color;
+                this.x = x; this.y = y; this.width = 36; this.height = 54; this.color = color;
             }
             draw(ctx) {
                 ctx.fillStyle = this.color;
                 ctx.fillRect(this.x, this.y, this.width, this.height);
                 ctx.fillStyle = '#ffd700';
                 ctx.beginPath();
-                ctx.arc(this.x + 8, this.y + 30, 4, 0, Math.PI * 2);
+                ctx.arc(this.x + 7, this.y + 27, 3.5, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
 
-        // Level Definitions (5 Complete Detailed Levels)
+        // Levels tailored for compact mobile aspect ratios (Height: 400px)
         const levels = [
-            // Level 1: Introduction to Cooperation
             {
-                spawn1: {x: 60, y: 380},
-                spawn2: {x: 120, y: 380},
+                spawn1: {x: 40, y: 280}, spawn2: {x: 80, y: 280},
                 platforms: [
-                    {x: 0, y: 440, width: 960, height: 100}, // Floor
-                    {x: 300, y: 340, width: 150, height: 20},
-                    {x: 550, y: 260, width: 180, height: 20},
-                    {x: 200, y: 200, width: 120, height: 20},
+                    {x: 0, y: 340, width: 960, height: 60},
+                    {x: 280, y: 250, width: 140, height: 16},
+                    {x: 520, y: 180, width: 160, height: 16},
                 ],
-                hazards: [
-                    {x: 450, y: 420, width: 80, height: 20} // Spikes
-                ],
+                hazards: [{x: 430, y: 324, width: 70, height: 16}],
                 switches: [],
-                doors: [
-                    {x: 820, y: 380, color: '#3498db'},
-                    {x: 880, y: 380, color: '#e91e63'}
-                ],
+                doors: [{x: 820, y: 280, color: '#3498db'}, {x: 870, y: 280, color: '#e91e63'}],
                 movingPlatforms: []
             },
-            // Level 2: The Switch Gate
             {
-                spawn1: {x: 50, y: 380},
-                spawn2: {x: 100, y: 380},
+                spawn1: {x: 40, y: 280}, spawn2: {x: 80, y: 280},
                 platforms: [
-                    {x: 0, y: 440, width: 960, height: 100},
-                    {x: 250, y: 350, width: 140, height: 20},
-                    {x: 480, y: 270, width: 140, height: 20},
-                    {x: 700, y: 190, width: 180, height: 20},
+                    {x: 0, y: 340, width: 960, height: 60},
+                    {x: 240, y: 260, width: 130, height: 16},
+                    {x: 460, y: 190, width: 130, height: 16},
+                    {x: 680, y: 120, width: 160, height: 16},
                 ],
-                hazards: [
-                    {x: 390, y: 420, width: 120, height: 20}
-                ],
-                switches: [
-                    {x: 310, y: 334, targetId: 1}
-                ],
-                doors: [
-                    {x: 800, y: 130, color: '#3498db'},
-                    {x: 850, y: 130, color: '#e91e63'}
-                ],
+                hazards: [{x: 380, y: 324, width: 70, height: 16}],
+                switches: [{x: 290, y: 244, targetId: 1}],
+                doors: [{x: 750, y: 66, color: '#3498db'}, {x: 800, y: 66, color: '#e91e63'}],
                 movingPlatforms: []
             },
-            // Level 3: Moving Platforms Crossing
             {
-                spawn1: {x: 50, y: 380},
-                spawn2: {x: 90, y: 380},
+                spawn1: {x: 40, y: 280}, spawn2: {x: 80, y: 280},
                 platforms: [
-                    {x: 0, y: 440, width: 300, height: 100},
-                    {x: 700, y: 440, width: 260, height: 100},
+                    {x: 0, y: 340, width: 260, height: 60},
+                    {x: 700, y: 340, width: 260, height: 60},
                 ],
-                hazards: [
-                    {x: 300, y: 440, width: 400, height: 20} // Pit of death
-                ],
+                hazards: [{x: 260, y: 340, width: 440, height: 16}],
                 switches: [],
-                doors: [
-                    {x: 820, y: 380, color: '#3498db'},
-                    {x: 880, y: 380, color: '#e91e63'}
-                ],
+                doors: [{x: 820, y: 286, color: '#3498db'}, {x: 870, y: 286, color: '#e91e63'}],
                 movingPlatforms: [
-                    {x: 350, y: 320, width: 120, height: 20, minX: 320, maxX: 650, speed: 2}
+                    {x: 340, y: 240, width: 110, height: 16, minX: 300, maxX: 620, speed: 2}
                 ]
             },
-            // Level 4: Vertical Ascent
             {
-                spawn1: {x: 50, y: 380},
-                spawn2: {x: 100, y: 380},
+                spawn1: {x: 40, y: 280}, spawn2: {x: 80, y: 280},
                 platforms: [
-                    {x: 0, y: 440, width: 960, height: 100},
-                    {x: 150, y: 330, width: 100, height: 20},
-                    {x: 350, y: 240, width: 100, height: 20},
-                    {x: 550, y: 160, width: 100, height: 20},
-                    {x: 750, y: 100, width: 150, height: 20},
+                    {x: 0, y: 340, width: 960, height: 60},
+                    {x: 180, y: 250, width: 90, height: 16},
+                    {x: 360, y: 180, width: 90, height: 16},
+                    {x: 540, y: 120, width: 90, height: 16},
+                    {x: 740, y: 80, width: 150, height: 16},
                 ],
-                hazards: [
-                    {x: 200, y: 420, width: 500, height: 20}
-                ],
+                hazards: [{x: 280, y: 324, width: 440, height: 16}],
                 switches: [],
-                doors: [
-                    {x: 800, y: 40, color: '#3498db'},
-                    {x: 850, y: 40, color: '#e91e63'}
-                ],
+                doors: [{x: 780, y: 24, color: '#3498db'}, {x: 830, y: 24, color: '#e91e63'}],
                 movingPlatforms: []
             },
-            // Level 5: The Ultimate Trial
             {
-                spawn1: {x: 50, y: 380},
-                spawn2: {x: 100, y: 380},
+                spawn1: {x: 40, y: 280}, spawn2: {x: 80, y: 280},
                 platforms: [
-                    {x: 0, y: 440, width: 250, height: 100},
-                    {x: 350, y: 340, width: 100, height: 20},
-                    {x: 550, y: 260, width: 100, height: 20},
-                    {x: 750, y: 180, width: 180, height: 100},
+                    {x: 0, y: 340, width: 220, height: 60},
+                    {x: 340, y: 260, width: 90, height: 16},
+                    {x: 540, y: 190, width: 90, height: 16},
+                    {x: 740, y: 130, width: 180, height: 60},
                 ],
-                hazards: [
-                    {x: 250, y: 420, width: 500, height: 20},
-                    {x: 480, y: 300, width: 40, height: 20}
-                ],
-                switches: [
-                    {x: 380, y: 324, targetId: 2}
-                ],
-                doors: [
-                    {x: 820, y: 120, color: '#3498db'},
-                    {x: 880, y: 120, color: '#e91e63'}
-                ],
+                hazards: [{x: 220, y: 324, width: 500, height: 16}],
+                switches: [{x: 370, y: 244, targetId: 2}],
+                doors: [{x: 810, y: 76, color: '#3498db'}, {x: 860, y: 76, color: '#e91e63'}],
                 movingPlatforms: [
-                    {x: 450, y: 180, width: 100, height: 20, minX: 400, maxX: 700, speed: 2.5}
+                    {x: 430, y: 130, width: 90, height: 16, minX: 380, maxX: 680, speed: 2.2}
                 ]
             }
         ];
@@ -528,8 +559,8 @@
             currentLevelIndex = index;
             currentLevel = levels[index];
 
-            player1 = new Player(currentLevel.spawn1.x, currentLevel.spawn1.y, '#3498db', { left: 'KeyA', right: 'KeyD', jump: 'KeyW' });
-            player2 = new Player(currentLevel.spawn2.x, currentLevel.spawn2.y, '#e91e63', { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp' });
+            player1 = new Player(currentLevel.spawn1.x, currentLevel.spawn1.y, '#3498db', true);
+            player2 = new Player(currentLevel.spawn2.x, currentLevel.spawn2.y, '#e91e63', false);
 
             platforms = [...currentLevel.platforms];
             hazards = [...currentLevel.hazards];
@@ -552,21 +583,10 @@
             player2.reset();
         }
 
-        function resetCurrentLevel() {
-            loadLevel(currentLevelIndex);
-        }
-
-        function startGame() {
-            loadLevel(0);
-        }
-
-        function nextLevel() {
-            loadLevel(currentLevelIndex + 1);
-        }
-
-        function restartGame() {
-            loadLevel(0);
-        }
+        function resetCurrentLevel() { loadLevel(currentLevelIndex); }
+        function startGame() { loadLevel(0); }
+        function nextLevel() { loadLevel(currentLevelIndex + 1); }
+        function restartGame() { loadLevel(0); }
 
         function hideAllScreens() {
             document.getElementById('start-screen').classList.add('hidden');
@@ -581,12 +601,9 @@
 
         function showVictoryScreen() {
             gameState = 'GAMEOVER';
-            document.getElementById('end-title').innerText = 'Victory!';
-            document.getElementById('end-desc').innerText = 'You successfully completed all Pepelo levels with brilliant co-op skill!';
             document.getElementById('gameover-screen').classList.remove('hidden');
         }
 
-        // Main Game Loop
         function update() {
             if (gameState === 'PLAYING') {
                 movingPlatforms.forEach(mp => mp.update());
@@ -595,11 +612,7 @@
                 player1.update(platforms, hazards, switches, movingPlatforms);
                 player2.update(platforms, hazards, switches, movingPlatforms);
 
-                // Check Win Condition (Both players touching their respective doors)
-                let p1InDoor = boxIntersect(player1, doors[0]);
-                let p2InDoor = boxIntersect(player2, doors[1]);
-
-                if (p1InDoor && p2InDoor) {
+                if (boxIntersect(player1, doors[0]) && boxIntersect(player2, doors[1])) {
                     showWinScreen();
                 }
             }
@@ -608,43 +621,37 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Background Scenery Elements
-            ctx.fillStyle = 'rgba(255,255,255,0.05)';
-            ctx.fillRect(100, 100, 200, 300);
-            ctx.fillRect(600, 80, 250, 350);
+            // Background elements
+            ctx.fillStyle = 'rgba(255,255,255,0.04)';
+            ctx.fillRect(80, 60, 180, 280);
+            ctx.fillRect(600, 40, 220, 300);
 
-            // Draw Doors
             doors.forEach(d => d.draw(ctx));
 
-            // Draw Platforms
             platforms.forEach(p => {
                 ctx.fillStyle = '#3e4a61';
                 ctx.fillRect(p.x, p.y, p.width, p.height);
                 ctx.fillStyle = '#2ecc71';
-                ctx.fillRect(p.x, p.y, p.width, 4); // Grass/Top border line
+                ctx.fillRect(p.x, p.y, p.width, 3);
             });
 
-            // Draw Moving Platforms
             movingPlatforms.forEach(mp => mp.draw(ctx));
 
-            // Draw Hazards (Spikes)
             hazards.forEach(h => {
                 ctx.fillStyle = '#e74c3c';
-                let spikeWidth = 16;
-                let count = Math.floor(h.width / spikeWidth);
-                for (let i = 0; i < count; i++) {
+                let sw = 14;
+                let cnt = Math.floor(h.width / sw);
+                for (let i = 0; i < cnt; i++) {
                     ctx.beginPath();
-                    ctx.moveTo(h.x + (i * spikeWidth), h.y + h.height);
-                    ctx.lineTo(h.x + (i * spikeWidth) + (spikeWidth / 2), h.y);
-                    ctx.lineTo(h.x + ((i + 1) * spikeWidth), h.y + h.height);
+                    ctx.moveTo(h.x + (i * sw), h.y + h.height);
+                    ctx.lineTo(h.x + (i * sw) + (sw / 2), h.y);
+                    ctx.lineTo(h.x + ((i + 1) * sw), h.y + h.height);
                     ctx.fill();
                 }
             });
 
-            // Draw Switches
             switches.forEach(s => s.draw(ctx));
 
-            // Draw Players
             player1.draw(ctx);
             player2.draw(ctx);
         }
@@ -655,7 +662,6 @@
             requestAnimationFrame(loop);
         }
 
-        // Initialize loop start
         loop();
     </script>
 </body>
