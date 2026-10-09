@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pepelo Adventure - Mobile Single Player Edition</title>
+    <title>Pepelo Adventure - Mobile Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
     <style>
         * {
@@ -40,10 +40,10 @@
             display: block;
             width: 100%;
             flex: 1;
-            background: linear-gradient(to bottom, #3588e9, #74b9ff, #dfe6e9);
+            background: linear-gradient(to bottom, #2980b9, #6dd5fa, #ffffff);
         }
         
-        /* Mobile Onscreen Touch Controls Overlay */
+        /* Mobile Touch Controls Overlay */
         #touch-controls {
             position: absolute;
             bottom: 0;
@@ -64,7 +64,7 @@
         }
         .t-btn {
             background: rgba(255, 255, 255, 0.25);
-            border: 3px solid rgba(255, 255, 255, 0.5);
+            border: 3px solid rgba(255, 255, 255, 0.6);
             color: white;
             font-size: 26px;
             width: 72px;
@@ -81,7 +81,7 @@
             transform: scale(0.92);
         }
         .jump-btn {
-            background: rgba(253, 203, 110, 0.35);
+            background: rgba(241, 196, 15, 0.4);
             border-color: #f39c12;
             width: 84px;
             height: 84px;
@@ -190,15 +190,15 @@
     <!-- Rotation Notice for Mobile Portrait -->
     <div id="rotate-warning">
         <h1>📱 Please Rotate Your Phone</h1>
-        <p>This adventure game is completely optimized for landscape mode to give you the best platforming controls and camera view!</p>
+        <p>This adventure game is optimized for landscape mode for the best platforming controls and camera view!</p>
     </div>
 
     <div id="game-container">
-        <!-- Canvas sized dynamically for mobile viewports -->
+        <!-- Canvas resolution setup -->
         <canvas id="gameCanvas" width="960" height="500"></canvas>
         
         <div id="ui-overlay">
-            <div class="badge" id="level-indicator">Level: 1 / 4</div>
+            <div class="badge" id="level-indicator">Level: 1 / 1</div>
             <div class="badge" id="restart-btn" onclick="resetCurrentLevel()" style="pointer-events: auto; background: rgba(214,48,49,0.7);">🔄 Reset</div>
         </div>
 
@@ -216,22 +216,15 @@
         <!-- Start Screen -->
         <div id="start-screen" class="screen">
             <h1>Pepelo Adventure</h1>
-            <p>Guide your explorer through mysterious platform realms, bypass dangerous spike traps, ride moving lifts, and reach the final golden exit door!</p>
+            <p>Guide your explorer through mysterious platform realms, bypass dangerous spike traps, ride the moving lift, and reach the final golden exit door!</p>
             <button class="btn" onclick="startGame()">Start Adventure</button>
         </div>
 
-        <!-- Level Complete Screen -->
+        <!-- Win Screen -->
         <div id="win-screen" class="screen hidden">
             <h1>Stage Cleared!</h1>
-            <p>Awesome jumping skills! Ready for the next challenge?</p>
-            <button class="btn" onclick="nextLevel()">Next Level</button>
-        </div>
-
-        <!-- Victory Screen -->
-        <div id="gameover-screen" class="screen hidden">
-            <h1>Victory!</h1>
-            <p>You successfully completed every single level of Pepelo Mobile Edition!</p>
-            <button class="btn" onclick="restartGame()">Play Again</button>
+            <p>Fantastic job completing the adventure level!</p>
+            <button class="btn" onclick="resetCurrentLevel()">Play Again</button>
         </div>
     </div>
 
@@ -240,15 +233,20 @@
         const ctx = canvas.getContext('2d');
 
         let gameState = 'START';
-        let currentLevelIndex = 0;
 
         // Input Control States
-        const inputState = { left: false, right: false, jump: false };
+        const inputState = { left: false, right: false, jump: false, facingRight: true };
 
         function bindTouch(id, key) {
             const el = document.getElementById(id);
             if (!el) return;
-            const activate = (e) => { e.preventDefault(); inputState[key] = true; el.classList.add('active'); };
+            const activate = (e) => { 
+                e.preventDefault(); 
+                inputState[key] = true; 
+                el.classList.add('active'); 
+                if (key === 'left') inputState.facingRight = false;
+                if (key === 'right') inputState.facingRight = true;
+            };
             const deactivate = (e) => { e.preventDefault(); inputState[key] = false; el.classList.remove('active'); };
 
             el.addEventListener('touchstart', activate, {passive: false});
@@ -263,30 +261,14 @@
         bindTouch('btn-right', 'right');
         bindTouch('btn-jump', 'jump');
 
-        // Load Open-Source Image Assets from Kenney Platformer Asset CDN Pack
-        const assets = {
-            player: new Image(),
-            tileGrass: new Image(),
-            spike: new Image(),
-            door: new Image(),
-            bgCloud: new Image()
-        };
-
-        assets.player.src = 'https://kenney.nl/assets/platformer-pack-redux/Preview/player_stand.png';
-        assets.tileGrass.src = 'https://kenney.nl/assets/platformer-pack-redux/Preview/tiles/grassCenter.png';
-        assets.spike.src = 'https://kenney.nl/assets/platformer-pack-redux/Preview/tiles/spikes.png';
-        assets.door.src = 'https://kenney.nl/assets/platformer-pack-redux/Preview/tiles/door_open.png';
-        assets.bgCloud.src = 'https://kenney.nl/assets/platformer-pack-redux/Preview/tiles/cloud1.png';
-
-        // Camera Object
         const camera = { x: 0, y: 0, width: 960, height: 500 };
 
         class Player {
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.width = 44;
-                this.height = 56;
+                this.width = 40;
+                this.height = 54;
                 this.vx = 0;
                 this.vy = 0;
                 this.speed = 4.2;
@@ -316,28 +298,24 @@
                 if (inputState.jump && this.grounded) {
                     this.vy = this.jumpPower;
                     this.grounded = false;
-                    inputState.jump = false; // consume input tap
+                    inputState.jump = false; 
                 }
 
                 this.vy += this.gravity;
 
-                // X movement & collision
                 this.x += this.vx;
                 this.resolveCollisionsX(platforms);
                 this.resolveMovingCollisionsX(movingPlatforms);
 
-                // Y movement & collision
                 this.grounded = false;
                 this.y += this.vy;
                 this.resolveCollisionsY(platforms);
                 this.resolveMovingCollisionsY(movingPlatforms);
 
-                // Hazard check
                 hazards.forEach(h => {
                     if (boxIntersect(this, h)) triggerDeath();
                 });
 
-                // Fall bounds
                 if (this.y > canvas.height + 200) triggerDeath();
             }
 
@@ -383,7 +361,7 @@
                             this.y = mp.y - this.height;
                             this.vy = 0;
                             this.grounded = true;
-                            this.x += mp.dx; // Ride platform horizontal movement
+                            this.x += mp.dx; 
                         } else if (this.vy < 0) {
                             this.y = mp.y + mp.height;
                             this.vy = 0;
@@ -394,13 +372,26 @@
 
             draw(ctx) {
                 ctx.save();
-                if (assets.player.complete && assets.player.naturalWidth !== 0) {
-                    ctx.drawImage(assets.player, this.x, this.y, this.width, this.height);
-                } else {
-                    // Fallback vector drawing if offline
-                    ctx.fillStyle = '#0984e3';
-                    ctx.fillRect(this.x, this.y, this.width, this.height);
-                }
+                // Polished Vector Character (Pepelo Adventurer Style)
+                // Body
+                ctx.fillStyle = '#0984e3';
+                ctx.beginPath();
+                ctx.roundRect(this.x, this.y + 10, this.width, this.height - 10, 10);
+                ctx.fill();
+
+                // Head / Helmet
+                ctx.fillStyle = '#74b9ff';
+                ctx.beginPath();
+                ctx.arc(this.x + this.width / 2, this.y + 14, 16, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Visor / Goggles
+                ctx.fillStyle = '#2d3436';
+                let eyeOffset = inputState.facingRight ? 4 : -4;
+                ctx.fillRect(this.x + this.width / 2 + eyeOffset - 6, this.y + 10, 14, 8);
+                ctx.fillStyle = '#00cec9';
+                ctx.fillRect(this.x + this.width / 2 + eyeOffset + (inputState.facingRight ? 2 : -4), this.y + 12, 4, 4);
+
                 ctx.restore();
             }
         }
@@ -417,131 +408,57 @@
             draw(ctx) {
                 ctx.fillStyle = '#00b894';
                 ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.fillStyle = '#55efc4';
+                ctx.fillRect(this.x, this.y, this.width, 4);
             }
         }
 
         class Door {
             constructor(x, y) {
-                this.x = x; this.y = y; this.width = 50; this.height = 70;
+                this.x = x; this.y = y; this.width = 48; this.height = 68;
             }
             draw(ctx) {
-                if (assets.door.complete && assets.door.naturalWidth !== 0) {
-                    ctx.drawImage(assets.door, this.x, this.y, this.width, this.height);
-                } else {
-                    ctx.fillStyle = '#fdcb6e';
-                    ctx.fillRect(this.x, this.y, this.width, this.height);
-                }
+                ctx.save();
+                ctx.fillStyle = '#e17055';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.fillStyle = '#fdcb6e';
+                ctx.beginPath();
+                ctx.arc(this.x + 10, this.y + 34, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
             }
         }
 
-        // Expanded Level Pack (Wider scrolling levels suited for single player exploration)
-        const levels = [
-            {
-                spawn: {x: 80, y: 350},
-                worldWidth: 1600,
-                platforms: [
-                    {x: 0, y: 440, width: 700, height: 60},
-                    {x: 800, y: 440, width: 800, height: 60},
-                    {x: 450, y: 330, width: 150, height: 24},
-                    {x: 700, y: 240, width: 160, height: 24},
-                    {x: 1000, y: 320, width: 180, height: 24},
-                    {x: 1250, y: 220, width: 180, height: 24},
-                ],
-                hazards: [
-                    {x: 700, y: 424, width: 100, height: 16},
-                    {x: 920, y: 424, width: 80, height: 16}
-                ],
-                movingPlatforms: [
-                    {x: 1450, y: 280, width: 100, height: 20, minX: 1400, maxX: 1700, speed: 2}
-                ],
-                door: {x: 1500, y: 370}
-            },
-            {
-                spawn: {x: 80, y: 350},
-                worldWidth: 1800,
-                platforms: [
-                    {x: 0, y: 440, width: 500, height: 60},
-                    {x: 650, y: 440, width: 400, height: 60},
-                    {x: 1200, y: 440, width: 600, height: 60},
-                    {x: 350, y: 330, width: 140, height: 24},
-                    {x: 520, y: 240, width: 140, height: 24},
-                    {x: 850, y: 280, width: 160, height: 24},
-                    {x: 1080, y: 190, width: 140, height: 24},
-                ],
-                hazards: [
-                    {x: 500, y: 424, width: 150, height: 16},
-                    {x: 1050, y: 424, width: 150, height: 16}
-                ],
-                movingPlatforms: [
-                    {x: 1350, y: 300, width: 120, height: 20, minX: 1300, maxX: 1650, speed: 2.5}
-                ],
-                door: {x: 1680, y: 370}
-            },
-            {
-                spawn: {x: 80, y: 350},
-                worldWidth: 1900,
-                platforms: [
-                    {x: 0, y: 440, width: 400, height: 60},
-                    {x: 550, y: 440, width: 300, height: 60},
-                    {x: 1000, y: 440, width: 300, height: 60},
-                    {x: 1450, y: 440, width: 500, height: 60},
-                    {x: 220, y: 320, width: 120, height: 24},
-                    {x: 420, y: 220, width: 120, height: 24},
-                    {x: 750, y: 270, width: 140, height: 24},
-                    {x: 1120, y: 200, width: 140, height: 24},
-                    {x: 1320, y: 120, width: 140, height: 24},
-                ],
-                hazards: [
-                    {x: 400, y: 424, width: 150, height: 16},
-                    {x: 850, y: 424, width: 150, height: 16},
-                    {x: 1300, y: 424, width: 150, height: 16}
-                ],
-                movingPlatforms: [
-                    {x: 1550, y: 280, width: 110, height: 20, minX: 1500, maxX: 1820, speed: 3}
-                ],
-                door: {x: 1750, y: 370}
-            },
-            {
-                spawn: {x: 80, y: 350},
-                worldWidth: 2000,
-                platforms: [
-                    {x: 0, y: 440, width: 350, height: 60},
-                    {x: 500, y: 380, width: 120, height: 24},
-                    {x: 700, y: 290, width: 120, height: 24},
-                    {x: 920, y: 200, width: 140, height: 24},
-                    {x: 1180, y: 260, width: 140, height: 24},
-                    {x: 1420, y: 340, width: 140, height: 24},
-                    {x: 1650, y: 440, width: 400, height: 60},
-                ],
-                hazards: [
-                    {x: 350, y: 424, width: 1350, height: 16} // Extreme Pit of Spikes
-                ],
-                movingPlatforms: [
-                    {x: 750, y: 380, width: 100, height: 20, minX: 650, maxX: 950, speed: 2.5},
-                    {x: 1220, y: 160, width: 100, height: 20, minX: 1150, maxX: 1450, speed: 2.8}
-                ],
-                door: {x: 1800, y: 370}
-            }
-        ];
+        // Single Level Setup (Wide Scrolling Stage)
+        const levelData = {
+            spawn: {x: 80, y: 350},
+            worldWidth: 1600,
+            platforms: [
+                {x: 0, y: 440, width: 650, height: 60},
+                {x: 780, y: 440, width: 820, height: 60},
+                {x: 420, y: 330, width: 140, height: 22},
+                {x: 680, y: 240, width: 160, height: 22},
+                {x: 960, y: 320, width: 180, height: 22},
+                {x: 1220, y: 220, width: 160, height: 22},
+            ],
+            hazards: [
+                {x: 650, y: 424, width: 130, height: 16} // Pit of Spikes
+            ],
+            movingPlatforms: [
+                {x: 1410, y: 280, width: 100, height: 20, minX: 1380, maxX: 1650, speed: 2}
+            ],
+            door: {x: 1480, y: 372}
+        };
 
-        let player, currentLevel;
-        let platforms = [], hazards = [], movingPlatforms = [], exitDoor;
+        let player, platforms = [], hazards = [], movingPlatforms = [], exitDoor;
 
-        function loadLevel(index) {
-            if (index >= levels.length) {
-                showVictoryScreen();
-                return;
-            }
-            currentLevelIndex = index;
-            currentLevel = levels[index];
+        function loadLevel() {
+            player = new Player(levelData.spawn.x, levelData.spawn.y);
+            platforms = [...levelData.platforms];
+            hazards = [...levelData.hazards];
+            movingPlatforms = levelData.movingPlatforms.map(mp => new MovingPlatform(mp.x, mp.y, mp.width, mp.height, mp.minX, mp.maxX, mp.speed));
+            exitDoor = new Door(levelData.door.x, levelData.door.y);
 
-            player = new Player(currentLevel.spawn.x, currentLevel.spawn.y);
-            platforms = [...currentLevel.platforms];
-            hazards = [...currentLevel.hazards];
-            movingPlatforms = currentLevel.movingPlatforms.map(mp => new MovingPlatform(mp.x, mp.y, mp.width, mp.height, mp.minX, mp.maxX, mp.speed));
-            exitDoor = new Door(currentLevel.door.x, currentLevel.door.y);
-
-            document.getElementById('level-indicator').innerText = `Level: ${currentLevelIndex + 1} / ${levels.length}`;
             hideAllScreens();
             gameState = 'PLAYING';
         }
@@ -551,19 +468,23 @@
                    a.y < b.y + b.height && a.y + a.height > b.y;
         }
 
-        function triggerDeath() {
-            player.reset();
-        }
+        function triggerDeath() { player.reset(); }
+        function resetCurrentLevel() { loadLevel(); }
 
-        function resetCurrentLevel() { loadLevel(currentLevelIndex); }
-        function startGame() { loadLevel(0); }
-        function nextLevel() { loadLevel(currentLevelIndex + 1); }
-        function restartGame() { loadLevel(0); }
+        function startGame() {
+            // Request native mobile fullscreen on click
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => console.log(err));
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            }
+            loadLevel();
+        }
 
         function hideAllScreens() {
             document.getElementById('start-screen').classList.add('hidden');
             document.getElementById('win-screen').classList.add('hidden');
-            document.getElementById('gameover-screen').classList.add('hidden');
         }
 
         function showWinScreen() {
@@ -571,24 +492,18 @@
             document.getElementById('win-screen').classList.remove('hidden');
         }
 
-        function showVictoryScreen() {
-            gameState = 'GAMEOVER';
-            document.getElementById('gameover-screen').classList.remove('hidden');
-        }
-
         function update() {
             if (gameState === 'PLAYING') {
                 movingPlatforms.forEach(mp => mp.update());
                 player.update(platforms, hazards, movingPlatforms);
 
-                // Smooth Camera horizontal follow
+                // Smooth camera horizontal follow
                 camera.x += (player.x - canvas.width / 2 - camera.x) * 0.1;
                 if (camera.x < 0) camera.x = 0;
-                if (camera.x > currentLevel.worldWidth - canvas.width) {
-                    camera.x = currentLevel.worldWidth - canvas.width;
+                if (camera.x > levelData.worldWidth - canvas.width) {
+                    camera.x = levelData.worldWidth - canvas.width;
                 }
 
-                // Check Win Condition (Reach Door)
                 if (boxIntersect(player, exitDoor)) {
                     showWinScreen();
                 }
@@ -599,31 +514,27 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             ctx.save();
-            ctx.translate(-camera.x, 0); // Apply camera offset
+            ctx.translate(-camera.x, 0);
 
-            // Background environmental parallax details
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            // Background clouds / scenery
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.beginPath();
-            ctx.arc(300, 120, 50, 0, Math.PI * 2);
-            ctx.arc(900, 90, 70, 0, Math.PI * 2);
-            ctx.arc(1500, 110, 60, 0, Math.PI * 2);
+            ctx.arc(250, 100, 45, 0, Math.PI * 2);
+            ctx.arc(800, 80, 60, 0, Math.PI * 2);
+            ctx.arc(1350, 110, 50, 0, Math.PI * 2);
             ctx.fill();
 
-            // Draw Exit Door
             exitDoor.draw(ctx);
 
-            // Draw Platforms
             platforms.forEach(p => {
-                ctx.fillStyle = '#636e72';
+                ctx.fillStyle = '#2d3436';
                 ctx.fillRect(p.x, p.y, p.width, p.height);
                 ctx.fillStyle = '#00b894';
-                ctx.fillRect(p.x, p.y, p.width, 4); // Grass top line
+                ctx.fillRect(p.x, p.y, p.width, 4); // Grass line
             });
 
-            // Draw Moving Platforms
             movingPlatforms.forEach(mp => mp.draw(ctx));
 
-            // Draw Hazards (Spikes)
             hazards.forEach(h => {
                 ctx.fillStyle = '#d63031';
                 let sw = 16;
@@ -637,7 +548,6 @@
                 }
             });
 
-            // Draw Player
             player.draw(ctx);
 
             ctx.restore();
